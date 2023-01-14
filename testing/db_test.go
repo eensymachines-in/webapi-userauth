@@ -50,14 +50,14 @@ func connectDB() error {
 	return nil
 }
 
-func seedDB() error {
-	if err := connectDB(); err != nil {
-		return err
+// flushDB : this will help to flush the database of the previous seed
+// Caution do not call this function in production environment
+func flushDB() {
+	if Conn != nil {
+		Conn.DB(DATABASE_NAME).C(COLL_NAME).RemoveAll(bson.M{})
 	}
-	// file, err := os.Open("./seed.json")
-	// if err != nil {
-	// 	return fmt.Errorf("seedDB/os.Open %s", err)
-	// }
+}
+func seedDB() error {
 	byt, err := os.ReadFile("./seed.json")
 	if err != nil {
 		return fmt.Errorf("seedDB/ReadAll %s", err)
@@ -68,6 +68,8 @@ func seedDB() error {
 		return fmt.Errorf("seedDB/json.Unmarshal %s", err)
 	}
 	coll := Conn.DB(DATABASE_NAME).C(COLL_NAME)
+	// []UserAccount is not []interface and hence the function call will not accept this as valid argument
+	//
 	docs := make([]interface{}, len(toInsert))
 	for i, ins := range toInsert {
 		docs[i] = ins
@@ -118,17 +120,68 @@ func TestInsertDeleteUserAccount(t *testing.T) {
 }
 
 func TestGetSampleFromColl(t *testing.T) {
+	// ========
+	// setting up the database in the database
+	// ========
+	connectDB()
+	flushDB()
 	seedDB() // seed db will open the connection to database
 	defer Conn.Close()
-	result := map[string]interface{}{}
-	Conn.DB("").C(COLL_NAME).Pipe([]bson.M{
-		{"$sample": bson.M{"size": 10}},
-		{"$project": bson.M{"_id": 1}},
-		{"$group": bson.M{"_id": "", "sample": bson.M{"$push": "$_id"}}},
-		{"$project": bson.M{"_id": 0, "sample": 1}},
-	}).One(&result)
-	// TODO: test this getting sample of useraccounts from the database
-	// once you have this query then finalize (mgdb *MongoDB) GetSampleFromColl
-	// which then can help you testing further
-	t.Log(result["sample"])
+	// ==============
+	// dial connecting the database
+	// ==============
+	db, close, err := useracc.DialConnectDB(useracc.InitDB("localhost:47017", DATABASE_NAME, "", "", reflect.TypeOf(&useracc.MongoDB{})))
+	defer close()
+	assert.Nil(t, err, "failed to connect to db")
+	assert.NotNil(t, db, "nil db pointer")
+	// ================
+	var result interface{}
+	err = db.(useracc.IMongoQry).GetSampleFromColl(COLL_NAME, 10, &result)
+	assert.Nil(t, err, "unexpected error when GetSampleFromColl")
+	assert.NotNil(t, result, "nil result for GetSampleFromColl")
+	byt, err := json.Marshal(result)
+	assert.Nil(t, err, "unexpected error when json.Marshal")
+	t.Log(string(byt))
+	// ================
+	// GetSampleFromColl with invalid size
+	err = db.(useracc.IMongoQry).GetSampleFromColl(COLL_NAME, -10, &result)
+	// with invalid size, you dont get any error
+	// the sample set would be empty
+	assert.Nil(t, err, "Unexpected error when getting sample with invalid size")
+	ids := result.(map[string][]bson.ObjectId)
+	sample := ids["sample"]
+	assert.Equal(t, 0, len(sample), "Unexpected non-empty sample size")
+}
+
+func TestGetGetOneFromColl(t *testing.T) {
+	// ========
+	// setting up the database in the database
+	// ========
+	connectDB()
+	flushDB()
+	seedDB() // seed db will open the connection to database
+	defer Conn.Close()
+	// ==============
+	// dial connecting the database
+	// ==============
+	db, close, err := useracc.DialConnectDB(useracc.InitDB("localhost:47017", DATABASE_NAME, "", "", reflect.TypeOf(&useracc.MongoDB{})))
+	defer close()
+	assert.Nil(t, err, "failed to connect to db")
+	assert.NotNil(t, db, "nil db pointer")
+	// Now getting one sample from database so as to test
+	var result interface{}
+	db.(useracc.IMongoQry).GetSampleFromColl(COLL_NAME, 1, &result)
+	ids := result.(map[string][]bson.ObjectId)
+	sample := ids["sample"]
+	assert.Equal(t, 1, len(sample), "Unexpected number of items in the sample")
+	// ===============
+	ua := useracc.UserAccount{}
+	var uaMap map[string]interface{}
+	err = db.(useracc.IMongoQry).GetOneFromColl(COLL_NAME, func() bson.M { return bson.M{"_id": sample[0]} }, &uaMap)
+	t.Log(uaMap)
+	byt, _ := json.Marshal(uaMap)
+	t.Log(string(byt))
+	json.Unmarshal(byt, &ua)
+	assert.Nil(t, err, "Unexpected error when GetOneFromColl")
+	t.Log(ua)
 }
