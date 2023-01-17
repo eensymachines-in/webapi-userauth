@@ -6,12 +6,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestAddrDialate	: every address object starts with a pin code and then gets its details from 3rd part api
+// TestFetchPOs	: every address object starts with a pin code and then gets its details from 3rd part api
 // this test is to testing the same
-func TestAddrDialate(t *testing.T) {
+func TestFetchPOs(t *testing.T) {
 	pincode := "411038"
-	addrOptions := Addresses{}
+	addrOptions := []Address{}
 	err := FetchPOs(pincode, &addrOptions)
 	assert.Nil(t, err, "Unexpected error when getting the POs from the pincode")
-	addr := addrOptions.FindNearbyLikely("Kothrud")
+	addr := FindNearbyLikely("Kothrud", addrOptions)
+	assert.NotNil(t, addr, "Unexpected nil address")
+	t.Log(addr)
 }

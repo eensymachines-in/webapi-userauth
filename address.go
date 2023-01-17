@@ -29,11 +29,10 @@ type Address struct {
 	Country  string `json:"Country"`
 	Pincode  string `json:"Pincode"`
 }
-type Addresses []Address
 
 // FindNearbyLikely : for a list of addresses this can compare the PO and pick the correct one most nearby your areaa
-func (addrs Addresses) FindNearbyLikely(name string) *Address {
-	for _, item := range addrs {
+func FindNearbyLikely(name string, from []Address) *Address {
+	for _, item := range from {
 		if strings.Contains(item.PO, name) {
 			return &item
 		}
@@ -46,7 +45,8 @@ func (addrs Addresses) FindNearbyLikely(name string) *Address {
 // findSimilar : string of the name of the postoffice nearby
 // for a given postal code there can be multiple zones that post offices cover,
 // api when queried gets back with multiple post offices, to choose from among them use findSimilar
-func FetchPOs(pncde string, result *Addresses) error {
+// request timeout is a huge problem with the postalpincode server , we need to see if we can build a local database of addresses
+func FetchPOs(pncde string, result *[]Address) error {
 	url := fmt.Sprintf("https://api.postalpincode.in/pincode/%s", pncde)
 	client := http.Client{
 		Timeout: 5 * time.Second,
@@ -64,6 +64,8 @@ func FetchPOs(pncde string, result *Addresses) error {
 		return fmt.Errorf("FetchPOs: Pincode not found %s", pncde)
 	case http.StatusInternalServerError:
 		return fmt.Errorf("FetchPOs: temporary server downtime")
+	case http.StatusRequestTimeout:
+		return fmt.Errorf("FetchPOs: postal server unresponsive")
 	case http.StatusOK:
 		defer resp.Body.Close() // json body of the address details
 		byt, err := ioutil.ReadAll(resp.Body)
@@ -72,7 +74,7 @@ func FetchPOs(pncde string, result *Addresses) error {
 		}
 		// the object we receive in response
 		type Payload struct {
-			PostOffices []Address `PostOffice`
+			PostOffices []Address `json:"PostOffice"`
 		}
 		respPayload := []Payload{} // somehow the response is a slice, at the top
 		if err := json.Unmarshal(byt, &respPayload); err != nil {
