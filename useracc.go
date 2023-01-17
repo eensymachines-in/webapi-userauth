@@ -9,10 +9,7 @@ Middleware queries for accounts in eensymachines
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"regexp"
-	"time"
 
 	"github.com/eensymachines-in/apierr/v2"
 	"github.com/eensymachines.in/useracc/nosql"
@@ -32,53 +29,6 @@ type IUsrAcc interface {
 	Contact() map[string]interface{}
 	Address() string
 	SetNewID() IUsrAcc
-}
-
-// http://www.postalpincode.in/Api-Details
-// this can store the postal address for the pincode given location
-type Address struct {
-	PO       string `json:"Name"`
-	State    string `json:"State"`
-	District string `json:"District"`
-	Division string `json:"Division"`
-	Block    string `json:"Block"`
-	Country  string `json:"Country"`
-	Pincode  string `json:"Pincode"`
-}
-
-// Dialate : this for the given postal code will get the other details of the address
-// this works only for the indian postal network
-func (addr *Address) Dialate() error {
-	url := fmt.Sprintf("https://api.postalpincode.in/pincode/%s", addr.Pincode)
-	client := http.Client{
-		Timeout: 4 * time.Second,
-	}
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return fmt.Errorf("Dialate Address: %s", err)
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("Dialate Address: failed request %s", err)
-	}
-	switch resp.StatusCode {
-	case http.StatusNotFound:
-		return fmt.Errorf("Dialate Address: Pincode not found %s", addr.Pincode)
-	case http.StatusInternalServerError:
-		return fmt.Errorf("Dialate Address: temporary server downtime")
-	case http.StatusOK:
-		defer resp.Body.Close() // json body of the address details
-		byt, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return fmt.Errorf("Dialate Address: failed to read response from postal server %s", err)
-		}
-		if err := json.Unmarshal(byt, addr); err != nil {
-			return fmt.Errorf("Dialate Address: failed to unmarshal result from postal server %s", err)
-		}
-	default:
-		return fmt.Errorf("Dialate Address: unknown error on postal pincode server %d", resp.StatusCode)
-	}
-	return nil
 }
 
 type UserAccount struct {
