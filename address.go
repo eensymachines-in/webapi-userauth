@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
+	"regexp"
 	"time"
 )
 
@@ -30,10 +30,14 @@ type Address struct {
 	Pincode  string `json:"Pincode"`
 }
 
-// FindNearbyLikely : for a list of addresses this can compare the PO and pick the correct one most nearby your areaa
-func FindNearbyLikely(name string, from []Address) *Address {
+// FindWithName : for a list of addresses this can compare the PO and pick the correct one most nearby your areaa
+func FindWithName(name string, from []Address) *Address {
+	// case insensitive match on the post office name
+	// we are trying to find the phrase in the name of the address post office
+	// if found return the address that contains the phrase
+	regx := regexp.MustCompile(fmt.Sprintf("(?i)%s", name))
 	for _, item := range from {
-		if strings.Contains(item.PO, name) {
+		if regx.MatchString(item.PO) {
 			return &item
 		}
 	}
