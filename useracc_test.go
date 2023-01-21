@@ -1,6 +1,7 @@
 package useracc
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -22,5 +23,10 @@ func TestJsonUserAcc(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	t.Log(newReg.(IString).Stringify())
+	// if the object can make a round trip in json we know all the json tags are working
+	byt, err := json.Marshal(newReg)
+	assert.Nil(t, err, "Unexpected error when marshalling user object")
+	var result UserAccount
+	json.Unmarshal(byt, &result)
+	t.Log(IString(&result).Stringify())
 }

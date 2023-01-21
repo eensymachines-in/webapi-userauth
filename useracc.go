@@ -61,5 +61,5 @@ func (ua *UserAccount) SetNewID() IUsrAcc {
 
 // Strigify :typically used to convert the object to string in debugging purposes
 func (ua *UserAccount) Stringify() string {
-	return fmt.Sprintf("%s-%s-%s@%s", ua.Ttle, ua.Eml, ua.Phn, IString(&ua.Addr).Stringify())
+	return fmt.Sprintf("%s-%s-%s @ %s", ua.Ttle, ua.Eml, ua.Phn, IString(&ua.Addr).Stringify())
 }

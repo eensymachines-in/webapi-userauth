@@ -25,5 +25,5 @@ type Address struct {
 }
 
 func (addr *Address) Stringify() string {
-	return fmt.Sprintf("%s-%s-%s-%s", addr.PO, addr.State, addr.District, addr.Pincode)
+	return fmt.Sprintf("%s-%s-%s-%s-%s-%s", addr.PO, addr.State, addr.District, addr.Division, addr.Block, addr.Pincode)
 }
