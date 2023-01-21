@@ -151,22 +151,15 @@ func RegisterNewAccount(ua IUsrAcc, db nosql.IQryable, result *map[string]interf
 	}).Info("New account registered")
 	// All then that remains is sending back the id of the newly created account
 	// for that we need to get the account details that we just inserted
-
-	var newAccMap map[string]interface{}
 	err = db.GetOneFromColl("usraccs", func() bson.M {
 		return bson.M{"email": ua.Contact()["email"]}
-	}, &newAccMap)
-	if newAccMap == nil {
+	}, result)
+	if result == nil {
 		// added to the db but not found, this is weird should never happen
 		return apierr.Throw(fmt.Errorf("one or more fields for the user account is invalid")).Code(apierr.ErrorCode(apierr.InvldParamErr)).Context("RegisterNewAccount").Message("Invalid user account")
 	}
 	if err != nil {
 		return apierr.Throw(fmt.Errorf("one or more fields for the user account is invalid")).Code(apierr.ErrorCode(apierr.InvldParamErr)).Context("RegisterNewAccount").Message("Invalid user account")
 	}
-	// roundtripping from json to get the user account from it
-	newAcc := UserAccount{}
-	byt, _ := json.Marshal(newAccMap)
-	json.Unmarshal(byt, &newAcc)
-
 	return nil
 }

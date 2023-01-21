@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/eensymachines.in/useracc"
+	"github.com/eensymachines.in/useracc/nosql"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -89,8 +90,8 @@ func TestDBConnection(t *testing.T) {
 	if the database does not exists it would be implicitly created
 	================================*/
 	t.Log("=========== testing DB connection and init ========")
-	db := useracc.InitDB("localhost:37017", "useraccs", "", "", reflect.TypeOf(&useracc.MongoDB{}))
-	persist, close, err := useracc.DialConnectDB(db)
+	db := nosql.InitDB("localhost:37017", "useraccs", "", "", reflect.TypeOf(&nosql.MongoDB{}))
+	persist, close, err := nosql.DialConnectDB(db)
 	assert.Nil(t, err, "failed to dial connection on db")
 	assert.NotNil(t, persist, "nil connection on dial")
 	close()
@@ -99,7 +100,7 @@ func TestDBConnection(t *testing.T) {
 	================================*/
 	t.Log(">> Now testing with false host connection ")
 	// this is when we have the server not correctl spelt and hence the connection should fail
-	_, _, err = useracc.DialConnectDB(useracc.InitDB("somehost:37017", "useraccs", "", "", reflect.TypeOf(&useracc.MongoDB{})))
+	_, _, err = nosql.DialConnectDB(nosql.InitDB("somehost:37017", "useraccs", "", "", reflect.TypeOf(&nosql.MongoDB{})))
 
 	assert.NotNil(t, err, "unexpected nil err when connecting to invalid host")
 	t.Log(">> Now testing with false host connection ")
@@ -108,11 +109,11 @@ func TestDBConnection(t *testing.T) {
 
 func TestInsertDeleteUserAccount(t *testing.T) {
 	t.Log("now testing for removing an account")
-	db, close, err := useracc.DialConnectDB(useracc.InitDB("localhost:37017", "useraccs", "", "", reflect.TypeOf(&useracc.MongoDB{})))
+	db, close, err := nosql.DialConnectDB(nosql.InitDB("localhost:37017", "useraccs", "", "", reflect.TypeOf(&nosql.MongoDB{})))
 	assert.Nil(t, err, "unexpected error when Connecting to DB")
 	defer close()
 	var result interface{}
-	err = db.(useracc.IMongoQry).DeleteOneFromColl("useraccs", "", func(id string) bson.M {
+	err = db.(nosql.IQryable).DeleteOneFromColl("useraccs", "", func(id string) bson.M {
 		return bson.M{"_id": bson.IsObjectIdHex(id)}
 	}, &result)
 	t.Logf("%v", result)
@@ -130,13 +131,13 @@ func TestGetSampleFromColl(t *testing.T) {
 	// ==============
 	// dial connecting the database
 	// ==============
-	db, close, err := useracc.DialConnectDB(useracc.InitDB("localhost:47017", DATABASE_NAME, "", "", reflect.TypeOf(&useracc.MongoDB{})))
+	db, close, err := nosql.DialConnectDB(nosql.InitDB("localhost:47017", DATABASE_NAME, "", "", reflect.TypeOf(&nosql.MongoDB{})))
 	defer close()
 	assert.Nil(t, err, "failed to connect to db")
 	assert.NotNil(t, db, "nil db pointer")
 	// ================
 	var result interface{}
-	err = db.(useracc.IMongoQry).GetSampleFromColl(COLL_NAME, 10, &result)
+	err = db.(nosql.IQryable).GetSampleFromColl(COLL_NAME, 10, &result)
 	assert.Nil(t, err, "unexpected error when GetSampleFromColl")
 	assert.NotNil(t, result, "nil result for GetSampleFromColl")
 	byt, err := json.Marshal(result)
@@ -144,7 +145,7 @@ func TestGetSampleFromColl(t *testing.T) {
 	t.Log(string(byt))
 	// ================
 	// GetSampleFromColl with invalid size
-	err = db.(useracc.IMongoQry).GetSampleFromColl(COLL_NAME, -10, &result)
+	err = db.(nosql.IQryable).GetSampleFromColl(COLL_NAME, -10, &result)
 	// with invalid size, you dont get any error
 	// the sample set would be empty
 	assert.Nil(t, err, "Unexpected error when getting sample with invalid size")
@@ -164,20 +165,20 @@ func TestGetGetOneFromColl(t *testing.T) {
 	// ==============
 	// dial connecting the database
 	// ==============
-	db, close, err := useracc.DialConnectDB(useracc.InitDB("localhost:47017", DATABASE_NAME, "", "", reflect.TypeOf(&useracc.MongoDB{})))
+	db, close, err := nosql.DialConnectDB(nosql.InitDB("localhost:47017", DATABASE_NAME, "", "", reflect.TypeOf(&nosql.MongoDB{})))
 	defer close()
 	assert.Nil(t, err, "failed to connect to db")
 	assert.NotNil(t, db, "nil db pointer")
 	// Now getting one sample from database so as to test
 	var result interface{}
-	db.(useracc.IMongoQry).GetSampleFromColl(COLL_NAME, 1, &result)
+	db.(nosql.IQryable).GetSampleFromColl(COLL_NAME, 1, &result)
 	ids := result.(map[string][]bson.ObjectId)
 	sample := ids["sample"]
 	assert.Equal(t, 1, len(sample), "Unexpected number of items in the sample")
 	// ===============
 	ua := useracc.UserAccount{}
 	var uaMap map[string]interface{}
-	err = db.(useracc.IMongoQry).GetOneFromColl(COLL_NAME, func() bson.M { return bson.M{"_id": sample[0]} }, &uaMap)
+	err = db.(nosql.IQryable).GetOneFromColl(COLL_NAME, func() bson.M { return bson.M{"_id": sample[0]} }, &uaMap)
 	t.Log(uaMap)
 	byt, _ := json.Marshal(uaMap)
 	t.Log(string(byt))
