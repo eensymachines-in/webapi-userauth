@@ -112,3 +112,14 @@ func (mgdb *MongoDB) GetSampleFromColl(coll string, size int, result *interface{
 	*result = res
 	return nil
 }
+
+// CountFromColl : for the given filter on the collection this can get count of documents
+// coll		: ithe collection on which the filter applies
+// flt		: filter the documents on the collection using this
+func (mgdb *MongoDB) CountFromColl(coll string, flt func() bson.M) (int, error) {
+	n, err := mgdb.DB("").C(coll).Find(flt()).Count()
+	if err != nil {
+		return -1, err
+	}
+	return n, nil
+}
