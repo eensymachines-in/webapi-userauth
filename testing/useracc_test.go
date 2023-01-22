@@ -54,7 +54,7 @@ func TestNewRegisterAcc(t *testing.T) {
 	defer close()
 	assert.Nil(t, err, "failed to connect to db")
 	assert.NotNil(t, db, "nil db pointer")
-
+	// Define data in a map - typically this data will be used in constructor in creating accounts
 	data := []map[string]string{
 		{"email": "hslade0@shared.com", "title": "Hodge Slade", "phone": "6785263002", "pincode": "411038"},
 		{"email": "ccarme1@harvard.edu", "title": "Curran Carme", "phone": "3796025636", "pincode": "411057"},
