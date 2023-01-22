@@ -119,13 +119,13 @@ func NewUsrAccount(email, title, phone, pincode string) (IValidate, error) {
 // Incase duplicate is found sends back a bool and error incase the operation on the db failed
 func DuplicateAccount(ua IUsrAcc, db nosql.IQryable) (bool, error) {
 	// Checks to see if any other account with same email
-	var result map[string]interface{}
-	if err := db.EditOneFromColl(COLL_NAME, func() bson.M {
+	count, err := db.CountFromColl(COLL_NAME, func() bson.M {
 		return bson.M{"email": ua.Contact()["email"]}
-	}, &result); err != nil {
-		return true, apierr.Throw(fmt.Errorf("failed query to get duplicate account")).Code(apierr.ErrorCode(apierr.DBQueryErr)).Context("DuplicateAccount").Message("One or more operations on the server failed")
+	})
+	if err != nil {
+		return false, err
 	}
-	return (result != nil), nil
+	return (count > 0), nil
 }
 
 // RegisterNewAccount : registers a new account in the database and sends back the result

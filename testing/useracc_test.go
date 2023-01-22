@@ -71,3 +71,32 @@ func TestNewRegisterAcc(t *testing.T) {
 	}
 
 }
+
+// TestDuplctAcc : negative test for trying to register an account with email that is already registered
+func TestDuplctAcc(t *testing.T) {
+	// ========
+	// setting up the database in the database
+	// ========
+	connectDB()
+	flushDB()
+	seedDB() // seed db will open the connection to database
+	defer Conn.Close()
+	db, close, err := nosql.DialConnectDB(nosql.InitDB("localhost:47017", DATABASE_NAME, "", "", reflect.TypeOf(&nosql.MongoDB{})))
+	defer close()
+	assert.Nil(t, err, "failed to connect to db")
+	assert.NotNil(t, db, "nil db pointer")
+	data := []map[string]string{
+		{"email": "cdobrowski0@pcworld.com", "title": "Chevy Dobrowski", "phone": "7202565595", "pincode": "411038"},
+		{"email": "ygodlee1@unblog.fr", "title": "Yuri Godlee", "phone": "3342499299", "pincode": "411057"},
+	}
+	var result map[string]interface{}
+	for _, d := range data {
+		ac, err := useracc.NewUsrAccount(d["email"], d["title"], d["phone"], d["pincode"])
+		if err != nil {
+			t.Errorf("Unexpected error creating in new user account %s", err)
+			return
+		}
+		err = useracc.RegisterNewAccount(ac.(useracc.IUsrAcc), db.(nosql.IQryable), &result)
+		assert.NotNil(t, err, "Unexpected nil error when RegisterNewAccount")
+	}
+}
