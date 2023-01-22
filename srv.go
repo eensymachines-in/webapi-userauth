@@ -141,7 +141,7 @@ func RegisterNewAccount(ua IUsrAcc, db nosql.IQryable, result *map[string]interf
 		}))
 	}
 	// and then finally we are ready to add a new account
-	count, err := db.AddToColl(ua, "usraccs")
+	count, err := db.AddToColl(ua, COLL_NAME)
 	if err != nil {
 		return err
 	}
@@ -151,7 +151,7 @@ func RegisterNewAccount(ua IUsrAcc, db nosql.IQryable, result *map[string]interf
 	}).Info("New account registered")
 	// All then that remains is sending back the id of the newly created account
 	// for that we need to get the account details that we just inserted
-	err = db.GetOneFromColl("usraccs", func() bson.M {
+	err = db.GetOneFromColl(COLL_NAME, func() bson.M {
 		return bson.M{"email": ua.Contact()["email"]}
 	}, result)
 	if result == nil {
