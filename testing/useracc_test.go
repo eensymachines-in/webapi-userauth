@@ -102,4 +102,19 @@ func TestDuplctAcc(t *testing.T) {
 	}
 	/*Now testing for accounts that arent registered
 	 */
+	data = []map[string]string{
+		{"email": "hhubbocks0@wp.com", "title": "Hadleigh Hubbocks", "phone": "8988567352", "pincode": "411038"},
+		{"email": "ynewcomen1@nasa.gov", "title": "Yelena Newcomen", "phone": "3442881535", "pincode": "411057"},
+	}
+	for _, d := range data {
+		ac, err := useracc.NewUsrAccount(d["email"], d["title"], d["phone"], d["pincode"])
+		if err != nil {
+			t.Errorf("Unexpected error creating in new user account %s", err)
+			return
+		}
+		yes, err := useracc.DuplicateAccount(ac.(useracc.IUsrAcc), db.(nosql.IQryable))
+		// err = useracc.RegisterNewAccount(ac.(useracc.IUsrAcc), db.(nosql.IQryable), &result)
+		assert.Nil(t, err, "Unexpected nil error when RegisterNewAccount")
+		assert.False(t, yes, "Wasnt expecting the account to be reported as duplicate")
+	}
 }
