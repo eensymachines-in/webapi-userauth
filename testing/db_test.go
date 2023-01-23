@@ -69,16 +69,8 @@ func seedDB() error {
 		return fmt.Errorf("seedDB/json.Unmarshal %s", err)
 	}
 	coll := Conn.DB(DATABASE_NAME).C(COLL_NAME)
-	// []UserAccount is not []interface and hence the function call will not accept this as valid argument
-	//
-	// docs := make([]interface{}, len(toInsert))
-	// for i, ins := range toInsert {
-	// 	docs[i] = ins
-	// }
-	// err = coll.Insert(docs...)
-	// if err != nil {
-	// 	return fmt.Errorf("seedDB/Insert %s", err)
-	// }
+	// NOTE: The address needs to be expanded before it can pushed to the DB
+	// NewUsrAccount : will expand the address
 	for _, item := range toInsert {
 		ua, err := useracc.NewUsrAccount(item.Eml, item.Ttle, item.Phn, item.Addr.Pincode)
 		if err == nil { // no error creating new account
@@ -86,7 +78,9 @@ func seedDB() error {
 			if err != nil { // error inserting item into collection
 				continue
 			}
+			// IMP: incase error inserting user account will skip
 		}
+		// IMP: incase of error getting the address, will skip inserting the account
 	}
 	return nil
 }
