@@ -15,12 +15,12 @@ Every useracc has an address.
 // gets aggregated within the useracc
 // PinCode is vital in getting the address. - fields are hydrated from 3rdparty api
 type Address struct {
-	PO       string `json:"Name" bson:"po"`
-	State    string `json:"State" bson:"state"`
-	District string `json:"District" bson:"district"`
-	Division string `json:"Division" bson:"div"`
-	Block    string `json:"Block" bson:"block"`
-	Country  string `json:"Country" bson:"country"`
+	PO       string `json:"Name,omitempty" bson:"po"`
+	State    string `json:"State,omitempty" bson:"state"`
+	District string `json:"District,omitempty" bson:"district"`
+	Division string `json:"Division,omitempty" bson:"div"`
+	Block    string `json:"Block,omitempty" bson:"block"`
+	Country  string `json:"Country,omitempty" bson:"country"`
 	Pincode  string `json:"Pincode" bson:"pincode"`
 }
 

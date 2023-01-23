@@ -2,51 +2,61 @@
     {
         "title": "Chevy Dobrowski",
         "email": "cdobrowski0@pcworld.com",
-        "phone": "7202565595"
+        "phone": "7202565595",
+        "address" :{"Pincode": "411057"}
     },
     {
         "title": "Yuri Godlee",
         "email": "ygodlee1@unblog.fr",
-        "phone": "3342499299"
+        "phone": "3342499299",
+        "address" :{"Pincode": "411057"}
     },
     {
         "title": "Mordecai Baile",
         "email": "mbaile2@geocities.com",
-        "phone": "4158872112"
+        "phone": "4158872112",
+        "address" :{"Pincode": "411057"}
     },
     {
         "title": "Domenico Whewell",
         "email": "dwhewell3@weibo.com",
-        "phone": "7272502498"
+        "phone": "7272502498",
+        "address" :{"Pincode": "411057"}
     },
     {
         "title": "Dolli Dadswell",
         "email": "ddadswell4@wp.com",
-        "phone": "2123013646"
+        "phone": "2123013646",
+        "address" :{"Pincode": "411057"}
     },
     {
         "title": "Nicole Kale",
         "email": "nkale5@eepurl.com",
-        "phone": "3886058159"
+        "phone": "3886058159",
+        "address" :{"Pincode": "411057"}
     },
     {
         "title": "Lanie Paszak",
         "email": "lpaszak6@amazonaws.com",
-        "phone": "1253097362"
+        "phone": "1253097362",
+        "address" :{"Pincode": "411057"}
     },
     {
         "title": "Sharyl O'Kuddyhy",
         "email": "sokuddyhy7@si.edu",
-        "phone": "6974039388"
+        "phone": "6974039388",
+        "address" :{"Pincode": "411057"}
     },
     {
         "title": "Sibley Cambridge",
         "email": "scambridge8@cafepress.com",
-        "phone": "3192102036"
+        "phone": "3192102036",
+        "address" :{"Pincode": "411057"}
     },
     {
         "title": "Kanya Barents",
         "email": "kbarents9@sbwire.com",
-        "phone": "5187263036"
+        "phone": "5187263036",
+        "address" :{"Pincode": "411057"}
     }
 ]

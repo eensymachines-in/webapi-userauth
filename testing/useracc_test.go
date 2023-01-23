@@ -18,14 +18,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUserAccRegistration(t *testing.T) {
-	newReg, err := useracc.NewUsrAccount("johndoe@somedomain.com", "John Doe", "8390306860", "411038")
-	assert.Nil(t, err, "Unexpected error when creating a new account, check validation")
-	assert.NotNil(t, newReg, "Unpexpected nil account")
-	assert.True(t, newReg.IsValid(), "Unexpected false on validation")
-}
-
 // TestJsonUserAcc : this is to get the user account tested for json marshalling and unmarshalling
+// NOTE: round trip with json will determine if the json tags are all in place as expected
 func TestJsonUserAcc(t *testing.T) {
 	pncde := "411038"
 	// this one goes right in
@@ -42,6 +36,11 @@ func TestJsonUserAcc(t *testing.T) {
 	t.Log(useracc.IString(&result).Stringify())
 }
 
+// TestNewRegisterAcc : test for account registration
+// Will test registration of user accounts
+// Will test for query failure though
+// NOTE: Will NOT test for validation of accounts, duplicate accounts though - that would happen in separate tests
+// instead this will test the function for errors in the db
 func TestNewRegisterAcc(t *testing.T) {
 	// ========
 	// setting up the database in the database
@@ -69,7 +68,18 @@ func TestNewRegisterAcc(t *testing.T) {
 		err = useracc.RegisterNewAccount(ac.(useracc.IUsrAcc), db.(nosql.IQryable), &result)
 		assert.Nil(t, err, fmt.Sprintf("Unexpected error when RegisterNewAccount : %s", err))
 	}
-
+	// we then test for the account registration when the query fails
+	// way to make the query fail is send in queryable nil
+	for _, d := range data {
+		ac, err := useracc.NewUsrAccount(d["email"], d["title"], d["phone"], d["pincode"])
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		// NOTE: the queryable is nil - this bound to fail after
+		err = useracc.RegisterNewAccount(ac.(useracc.IUsrAcc), nil, &result)
+		assert.Nil(t, err, fmt.Sprintf("Unexpected error when RegisterNewAccount : %s", err))
+	}
 }
 
 // TestDuplctAcc : negative test for trying to register an account with email that is already registered
@@ -102,6 +112,8 @@ func TestDuplctAcc(t *testing.T) {
 	}
 	/*Now testing for accounts that arent registered
 	 */
+	// NOTE: +ve test and will test for err ==nil since we are trying to get the account not already registered
+	// duplicate will not be found
 	data = []map[string]string{
 		{"email": "hhubbocks0@wp.com", "title": "Hadleigh Hubbocks", "phone": "8988567352", "pincode": "411038"},
 		{"email": "ynewcomen1@nasa.gov", "title": "Yelena Newcomen", "phone": "3442881535", "pincode": "411057"},

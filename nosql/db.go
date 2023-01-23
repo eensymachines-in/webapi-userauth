@@ -48,6 +48,7 @@ func InitDB(host, db, uname, pass string, ty reflect.Type) IDBConn {
 // Use this after you have InitDB. Incase the Dial is success it sends back the DB over IDBConn interface.
 // Check for the error to know if the Dial has failed.
 //
+// NOTE: unless initiated this function would not work
 /*
 	db, close ,err := DialConnectDB(InitDB(host, db, coll, reflect.TypeOf(&MongoDB)))
 	if err !=nil{
@@ -57,6 +58,7 @@ func InitDB(host, db, uname, pass string, ty reflect.Type) IDBConn {
 	// call the queries on persistence interfaces
 
 */
+
 func DialConnectDB(conn IDBConn) (IDBConn, func(), error) {
 	// with the given fields all what you need is to see if ping works
 	// if ping works, then shift the handle to IMongoQry or send back error

@@ -71,13 +71,22 @@ func seedDB() error {
 	coll := Conn.DB(DATABASE_NAME).C(COLL_NAME)
 	// []UserAccount is not []interface and hence the function call will not accept this as valid argument
 	//
-	docs := make([]interface{}, len(toInsert))
-	for i, ins := range toInsert {
-		docs[i] = ins
-	}
-	err = coll.Insert(docs...)
-	if err != nil {
-		return fmt.Errorf("seedDB/Insert %s", err)
+	// docs := make([]interface{}, len(toInsert))
+	// for i, ins := range toInsert {
+	// 	docs[i] = ins
+	// }
+	// err = coll.Insert(docs...)
+	// if err != nil {
+	// 	return fmt.Errorf("seedDB/Insert %s", err)
+	// }
+	for _, item := range toInsert {
+		ua, err := useracc.NewUsrAccount(item.Eml, item.Ttle, item.Phn, item.Addr.Pincode)
+		if err == nil { // no error creating new account
+			err = coll.Insert(ua)
+			if err != nil { // error inserting item into collection
+				continue
+			}
+		}
 	}
 	return nil
 }
