@@ -93,7 +93,7 @@ func TestNewRegisterAcc(t *testing.T) {
 		}
 		// NOTE: the queryable is nil - this bound to fail after
 		err = useracc.RegisterNewAccount(ac.(useracc.IUsrAcc), nil, &result)
-		assert.Nil(t, err, fmt.Sprintf("Unexpected error when RegisterNewAccount : %s", err))
+		assert.NotNil(t, err, fmt.Sprintf("Unexpected error when RegisterNewAccount : %s", err))
 	}
 }
 
