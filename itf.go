@@ -10,7 +10,7 @@ Definition of interface on the packages for the UserAccount
 */
 const (
 	// private constants for validation of user accounts
-	patternEmail = `^[[:alnum:]]+[.\-_]{0,1}[[:alnum:]]*[@]{1}[[:alpha:]]+[.]{1}[[:alnum:]]{2,}[.]{0,1}[[:alnum:]]{0,}$`
+	patternEmail = `^[[:alnum:]]+[.\-_]{0,1}[[:alnum:]]*[@]{1}[[:alnum:]]+[.]{1}[[:alnum:]]{2,}[.]{0,1}[[:alnum:]]{0,}$`
 	patternPhone = `^[0-9]{10}$`
 	patternTitle = `^[a-zA-Z0-9_\-.\s]{1,16}$`
 	// Required for database queries

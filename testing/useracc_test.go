@@ -11,12 +11,27 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"regexp"
 	"testing"
 
 	"github.com/eensymachines.in/useracc"
 	"github.com/eensymachines.in/useracc/nosql"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestEmailRegex(t *testing.T) {
+	okEmails := []string{
+		"smepsted1@printfriendly.com",
+		"dmont4@purevolume.com",
+		"cdufore0@7bing.com",
+		"rboxe0@independent.co.uk",
+	}
+	patternEmail := `^[[:alnum:]]+[.\-_]{0,1}[[:alnum:]]*[@]{1}[[:alnum:]]+[.]{1}[[:alnum:]]{2,}[.]{0,1}[[:alnum:]]{0,}$`
+	rgx, _ := regexp.Compile(patternEmail)
+	for _, em := range okEmails {
+		assert.True(t, rgx.MatchString(em), fmt.Sprintf("Unexpected fail to match pattern in %s", em))
+	}
+}
 
 // TestJsonUserAcc : this is to get the user account tested for json marshalling and unmarshalling
 // NOTE: round trip with json will determine if the json tags are all in place as expected
