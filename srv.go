@@ -119,6 +119,9 @@ func NewUsrAccount(email, title, phone, pincode string) (IValidate, error) {
 // Incase duplicate is found sends back a bool and error incase the operation on the db failed
 func DuplicateAccount(ua IUsrAcc, db nosql.IQryable) (bool, error) {
 	// Checks to see if any other account with same email
+	if db == nil {
+		return false, apierr.Throw(fmt.Errorf("nil pointer for db")).Code(apierr.ErrorCode(apierr.DBConnErr)).Context("DuplicateAccount").Message("Server function broken, wait for an admin to fix this")
+	}
 	count, err := db.CountFromColl(COLL_NAME, func() bson.M {
 		return bson.M{"email": ua.Contact()["email"]}
 	})
@@ -132,6 +135,9 @@ func DuplicateAccount(ua IUsrAcc, db nosql.IQryable) (bool, error) {
 func RegisterNewAccount(ua IUsrAcc, db nosql.IQryable, result *map[string]interface{}) error {
 	if ua == nil {
 		return apierr.Throw(fmt.Errorf("account to register cannot be nil")).Code(apierr.ErrorCode(apierr.InvldParamErr)).Context("RegisterNewAccount").Message("Invalid user account")
+	}
+	if db == nil {
+		return apierr.Throw(fmt.Errorf("nil pointer for db")).Code(apierr.ErrorCode(apierr.DBConnErr)).Context("RegisterNewAccount").Message("Server function broken, wait for an admin to fix this")
 	}
 	if !ua.(IValidate).IsValid() {
 		return apierr.Throw(fmt.Errorf("one or more fields for the user account is invalid")).Code(apierr.ErrorCode(apierr.InvldParamErr)).Context("RegisterNewAccount").Message("Invalid user account")
