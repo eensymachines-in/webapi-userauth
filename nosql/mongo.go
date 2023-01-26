@@ -14,16 +14,36 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-// derives from session object
-type MongoDB struct {
-	*mgo.Session               // this reference can help us run queries
-	dialInfo     *mgo.DialInfo // for connecting to the databse
-
+type MongoConfig struct {
+	*mgo.DialInfo                 // we just extend the dial info so as to add more meat
+	DefaultColl   *mgo.Collection // default collection from which data is sought
+	ArchiveColl   *mgo.Collection // soft delete operations will shift the data to archive coll
 }
 
-func (mgdb *MongoDB) DialConn() error {
-	if mgdb.dialInfo != nil {
-		s, err := mgo.DialWithInfo(mgdb.dialInfo)
+func (mcfg *MongoConfig) SetDefaultColl(c *mgo.Collection) IDBConfig {
+	mcfg.DefaultColl = c
+	return mcfg
+}
+func (mcfg *MongoConfig) SetArchiveColl(c *mgo.Collection) IDBConfig {
+	mcfg.ArchiveColl = c
+	return mcfg
+}
+
+// derives from session object
+type MongoDB struct {
+	*mgo.Session           // this reference can help us run queries
+	Config       IDBConfig // aggregates the db configuration
+	// dialInfo     *mgo.DialInfo // for connecting to the databse
+}
+
+// DialConn		: will use the DB's configuration to dial the connection
+// will also assign the session and the collections
+// coll 		: name of the default collection
+// archv 		: name of the archival collection collection
+func (mgdb *MongoDB) DialConn(coll, archv string) error {
+	if mgdb.Config != nil {
+		cfg, _ := mgdb.Config.(*MongoConfig)
+		s, err := mgo.DialWithInfo(cfg.DialInfo)
 		if err != nil {
 			return err
 		}
@@ -34,6 +54,8 @@ func (mgdb *MongoDB) DialConn() error {
 		// http://godoc.org/labix.org/v2/mgo#Session.SetMode
 		s.SetMode(mgo.Monotonic, true)
 		mgdb.Session = s
+		// and also assign the collections
+		mgdb.Config.SetDefaultColl(mgdb.Session.DB("").C(coll)).SetArchiveColl(mgdb.Session.DB("").C(archv))
 		return nil
 	}
 	return fmt.Errorf("empty dialinfo, check and dial again")
@@ -43,13 +65,16 @@ func (mgdb *MongoDB) CloseConn() {
 	mgdb.Close()
 }
 func (mgdb *MongoDB) InitConn(host, db, uname, pass string) IDBConn {
-	mgdb.dialInfo = &mgo.DialInfo{
+	// Tries to instantiate the config object with dial info
+	// will not instantiate the session and the collection pointers
+	// That happens only when we DialConn()
+	mgdb.Config = &MongoConfig{DialInfo: &mgo.DialInfo{
 		Addrs:    []string{host},
 		Timeout:  3 * time.Second,
 		Database: db,
 		Username: uname,
 		Password: pass,
-	}
+	}, DefaultColl: nil, ArchiveColl: nil}
 	mgdb.Session = nil // not assigned until dialled
 	return mgdb
 }
@@ -122,4 +147,17 @@ func (mgdb *MongoDB) CountFromColl(coll string, flt func() bson.M) (int, error) 
 		return -1, err
 	}
 	return n, nil
+}
+
+func (mgdb *MongoDB) RemoveFromColl(coll string, id string, affected *int) error {
+	// remove from the main database , and add into the archived data base
+	// need to see what details are pushed onto the archived database
+	// ASK: where can we get the name of the archival database ?
+	// ASK: it has to be percolated into all functions form a central configuration
+
+	if err := mgdb.DB("").C(coll).Remove(bson.M{"_id": bson.ObjectIdHex(id)}); err != nil {
+		return fmt.Errorf("failed to remove account from database")
+	}
+	*affected = 1
+	return nil
 }

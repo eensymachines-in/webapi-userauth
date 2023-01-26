@@ -29,8 +29,9 @@ var (
 )
 
 const (
-	DATABASE_NAME = "useraccs"
-	COLL_NAME     = "users"
+	DATABASE_NAME  = "useraccs"
+	COLL_NAME      = "users"
+	ARCHVCOLL_NAME = "archive_users"
 )
 
 func connectDB() error {
@@ -93,9 +94,9 @@ func TestDBConnection(t *testing.T) {
 	if the database does not exists it would be implicitly created
 	================================*/
 	t.Log("=========== testing DB connection and init ========")
-	db := nosql.InitDB("localhost:37017", "useraccs", "", "", reflect.TypeOf(&nosql.MongoDB{}))
-	persist, close, err := nosql.DialConnectDB(db)
-	assert.Nil(t, err, "failed to dial connection on db")
+	db := nosql.InitDB("localhost:47017", "useraccs", "", "", reflect.TypeOf(&nosql.MongoDB{}))
+	persist, close, err := nosql.DialConnectDB(db, COLL_NAME, ARCHVCOLL_NAME)
+	assert.Nil(t, err, fmt.Sprintf("failed to dial connection on db %s", err))
 	assert.NotNil(t, persist, "nil connection on dial")
 	close()
 	/* ================================
@@ -103,7 +104,7 @@ func TestDBConnection(t *testing.T) {
 	================================*/
 	t.Log(">> Now testing with false host connection ")
 	// this is when we have the server not correctl spelt and hence the connection should fail
-	_, _, err = nosql.DialConnectDB(nosql.InitDB("somehost:37017", "useraccs", "", "", reflect.TypeOf(&nosql.MongoDB{})))
+	_, _, err = nosql.DialConnectDB(nosql.InitDB("somehost:37017", "useraccs", "", "", reflect.TypeOf(&nosql.MongoDB{})), COLL_NAME, ARCHVCOLL_NAME)
 
 	assert.NotNil(t, err, "unexpected nil err when connecting to invalid host")
 	t.Log(">> Now testing with false host connection ")
@@ -112,7 +113,7 @@ func TestDBConnection(t *testing.T) {
 
 func TestInsertDeleteUserAccount(t *testing.T) {
 	t.Log("now testing for removing an account")
-	db, close, err := nosql.DialConnectDB(nosql.InitDB("localhost:37017", "useraccs", "", "", reflect.TypeOf(&nosql.MongoDB{})))
+	db, close, err := nosql.DialConnectDB(nosql.InitDB("localhost:37017", "useraccs", "", "", reflect.TypeOf(&nosql.MongoDB{})), COLL_NAME, ARCHVCOLL_NAME)
 	assert.Nil(t, err, "unexpected error when Connecting to DB")
 	defer close()
 	var result interface{}
@@ -134,7 +135,7 @@ func TestGetSampleFromColl(t *testing.T) {
 	// ==============
 	// dial connecting the database
 	// ==============
-	db, close, err := nosql.DialConnectDB(nosql.InitDB("localhost:47017", DATABASE_NAME, "", "", reflect.TypeOf(&nosql.MongoDB{})))
+	db, close, err := nosql.DialConnectDB(nosql.InitDB("localhost:47017", DATABASE_NAME, "", "", reflect.TypeOf(&nosql.MongoDB{})), COLL_NAME, ARCHVCOLL_NAME)
 	defer close()
 	assert.Nil(t, err, "failed to connect to db")
 	assert.NotNil(t, db, "nil db pointer")
@@ -168,7 +169,7 @@ func TestGetGetOneFromColl(t *testing.T) {
 	// ==============
 	// dial connecting the database
 	// ==============
-	db, close, err := nosql.DialConnectDB(nosql.InitDB("localhost:47017", DATABASE_NAME, "", "", reflect.TypeOf(&nosql.MongoDB{})))
+	db, close, err := nosql.DialConnectDB(nosql.InitDB("localhost:47017", DATABASE_NAME, "", "", reflect.TypeOf(&nosql.MongoDB{})), COLL_NAME, ARCHVCOLL_NAME)
 	defer close()
 	assert.Nil(t, err, "failed to connect to db")
 	assert.NotNil(t, db, "nil db pointer")

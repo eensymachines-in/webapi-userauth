@@ -17,6 +17,7 @@ import (
 	"github.com/eensymachines.in/useracc"
 	"github.com/eensymachines.in/useracc/nosql"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/mgo.v2/bson"
 )
 
 func TestEmailRegex(t *testing.T) {
@@ -64,7 +65,7 @@ func TestNewRegisterAcc(t *testing.T) {
 	flushDB()
 	seedDB() // seed db will open the connection to database
 	defer Conn.Close()
-	db, close, err := nosql.DialConnectDB(nosql.InitDB("localhost:47017", DATABASE_NAME, "", "", reflect.TypeOf(&nosql.MongoDB{})))
+	db, close, err := nosql.DialConnectDB(nosql.InitDB("localhost:47017", DATABASE_NAME, "", "", reflect.TypeOf(&nosql.MongoDB{})), COLL_NAME, ARCHVCOLL_NAME)
 	defer close()
 	assert.Nil(t, err, "failed to connect to db")
 	assert.NotNil(t, db, "nil db pointer")
@@ -106,7 +107,7 @@ func TestDuplctAcc(t *testing.T) {
 	flushDB()
 	seedDB() // seed db will open the connection to database
 	defer Conn.Close()
-	db, close, err := nosql.DialConnectDB(nosql.InitDB("localhost:47017", DATABASE_NAME, "", "", reflect.TypeOf(&nosql.MongoDB{})))
+	db, close, err := nosql.DialConnectDB(nosql.InitDB("localhost:47017", DATABASE_NAME, "", "", reflect.TypeOf(&nosql.MongoDB{})), COLL_NAME, ARCHVCOLL_NAME)
 	defer close()
 	assert.Nil(t, err, "failed to connect to db")
 	assert.NotNil(t, db, "nil db pointer")
@@ -143,5 +144,33 @@ func TestDuplctAcc(t *testing.T) {
 		// err = useracc.RegisterNewAccount(ac.(useracc.IUsrAcc), db.(nosql.IQryable), &result)
 		assert.Nil(t, err, "Unexpected nil error when RegisterNewAccount")
 		assert.False(t, yes, "Wasnt expecting the account to be reported as duplicate")
+	}
+}
+
+func TestDelAcc(t *testing.T) {
+	// ========
+	// setting up the database in the database
+	// ========
+	connectDB()
+	flushDB()
+	seedDB() // seed db will open the connection to database
+	defer Conn.Close()
+	db, close, err := nosql.DialConnectDB(nosql.InitDB("localhost:47017", DATABASE_NAME, "", "", reflect.TypeOf(&nosql.MongoDB{})), COLL_NAME, ARCHVCOLL_NAME)
+	defer close()
+	assert.Nil(t, err, "failed to connect to db")
+	assert.NotNil(t, db, "nil db pointer")
+	// Need to get random from the database
+	var result interface{}
+	db.(nosql.IQryable).GetSampleFromColl(COLL_NAME, 10, &result)
+	assert.NotNil(t, result, "Unexpected nil result GetSampleFromColl")
+	ids, ok := result.(map[string][]bson.ObjectId)
+	assert.True(t, ok, "failed conversion for GetSampleFromColl result")
+	assert.NotEqual(t, 0, len(ids), "Unexpected empty result from GetSampleFromColl")
+	// once we have the samples, we then proceed for delete
+	for _, id := range ids["sample"] {
+		var count int
+		err := db.(nosql.IQryable).RemoveFromColl(COLL_NAME, id.Hex(), &count)
+		assert.Nil(t, err, "Unexpected error when RemoveFromColl")
+		assert.Equal(t, 1, count)
 	}
 }
