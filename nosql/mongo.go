@@ -14,69 +14,50 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-type MongoConfig struct {
-	*mgo.DialInfo                 // we just extend the dial info so as to add more meat
-	DefaultColl   *mgo.Collection // default collection from which data is sought
-	ArchiveColl   *mgo.Collection // soft delete operations will shift the data to archive coll
-}
-
-func (mcfg *MongoConfig) SetDefaultColl(c *mgo.Collection) IDBConfig {
-	mcfg.DefaultColl = c
-	return mcfg
-}
-func (mcfg *MongoConfig) SetArchiveColl(c *mgo.Collection) IDBConfig {
-	mcfg.ArchiveColl = c
-	return mcfg
-}
-
 // derives from session object
 type MongoDB struct {
-	*mgo.Session           // this reference can help us run queries
-	Config       IDBConfig // aggregates the db configuration
-	// dialInfo     *mgo.DialInfo // for connecting to the databse
+	*mgo.Session                 // this reference can help us run queries
+	DefaultColl  *mgo.Collection // default collection from which data is sought
+	ArchiveColl  *mgo.Collection // soft delete operations will shift the data to archive coll
+}
+
+func (mgdb *MongoDB) SetDefaultColl(c *mgo.Collection) IDBConfig {
+	mgdb.DefaultColl = c
+	return mgdb
+}
+func (mgdb *MongoDB) SetArchiveColl(c *mgo.Collection) IDBConfig {
+	mgdb.ArchiveColl = c
+	return mgdb
 }
 
 // DialConn		: will use the DB's configuration to dial the connection
-// will also assign the session and the collections
-// coll 		: name of the default collection
-// archv 		: name of the archival collection collection
-func (mgdb *MongoDB) DialConn(coll, archv string) error {
-	if mgdb.Config != nil {
-		cfg, _ := mgdb.Config.(*MongoConfig)
-		s, err := mgo.DialWithInfo(cfg.DialInfo)
-		if err != nil {
-			return err
-		}
-		// Reads may not be entirely up-to-date, but they will always see the
-		// history of changes moving forward, the data read will be consistent
-		// across sequential queries in the same session, and modifications made
-		// within the session will be observed in following queries (read-your-writes).
-		// http://godoc.org/labix.org/v2/mgo#Session.SetMode
-		s.SetMode(mgo.Monotonic, true)
-		mgdb.Session = s
-		// and also assign the collections
-		mgdb.Config.SetDefaultColl(mgdb.Session.DB("").C(coll)).SetArchiveColl(mgdb.Session.DB("").C(archv))
-		return nil
+func (mgdb *MongoDB) DialConn(c *DBInitConfig) error {
+	// Dials an mgo connection with DBInitConfig
+	// error when session is unreachable
+	var err error
+	mgdb.Session, err = mgo.DialWithInfo(&mgo.DialInfo{
+		Addrs:    []string{c.Host},
+		Timeout:  3 * time.Second,
+		Database: c.DB,
+		Username: c.UName,
+		Password: c.Passwd,
+	})
+	if err != nil {
+		return fmt.Errorf("DialConn: failed to connect to mongo instance: %s", err)
 	}
-	return fmt.Errorf("empty dialinfo, check and dial again")
+	// Reads may not be entirely up-to-date, but they will always see the
+	// history of changes moving forward, the data read will be consistent
+	// across sequential queries in the same session, and modifications made
+	// within the session will be observed in following queries (read-your-writes).
+	// http://godoc.org/labix.org/v2/mgo#Session.SetMode
+	mgdb.Session.SetMode(mgo.Monotonic, true)
+	// and also assign the collections
+	mgdb.SetDefaultColl(mgdb.Session.DB("").C(c.Coll)).SetArchiveColl(mgdb.Session.DB("").C(c.ArchvColl))
+	return nil
 
 }
 func (mgdb *MongoDB) CloseConn() {
 	mgdb.Close()
-}
-func (mgdb *MongoDB) InitConn(host, db, uname, pass string) IDBConn {
-	// Tries to instantiate the config object with dial info
-	// will not instantiate the session and the collection pointers
-	// That happens only when we DialConn()
-	mgdb.Config = &MongoConfig{DialInfo: &mgo.DialInfo{
-		Addrs:    []string{host},
-		Timeout:  3 * time.Second,
-		Database: db,
-		Username: uname,
-		Password: pass,
-	}, DefaultColl: nil, ArchiveColl: nil}
-	mgdb.Session = nil // not assigned until dialled
-	return mgdb
 }
 
 // GetOneFromColl : irrespective of the collection this one calls to get on specific from the collection

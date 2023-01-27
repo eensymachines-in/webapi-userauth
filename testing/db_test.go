@@ -14,7 +14,6 @@ import (
 	"os"
 	"reflect"
 	"testing"
-	"time"
 
 	"github.com/eensymachines.in/useracc"
 	"github.com/eensymachines.in/useracc/nosql"
@@ -32,88 +31,55 @@ const (
 	DATABASE_NAME  = "useraccs"
 	COLL_NAME      = "users"
 	ARCHVCOLL_NAME = "archive_users"
+	DBHOST         = "localhost:47017"
 )
 
-func connectDB() error {
-	var err error
-	Conn, err = mgo.DialWithInfo(&mgo.DialInfo{
-		Addrs:    []string{"localhost:47017"},
-		Timeout:  3 * time.Second,
-		Database: DATABASE_NAME, //default fallback database, when collection is not specified this will be considered
-		Username: "",
-		Password: "",
+// SetupMongoConn :  dials a mongo connection to testing host and can send out to the testing functions
+// forceSeed : flag will force seed the database all over again
+// set this t false if you need only to get the database connection
+// will flush only the default collection before seeding it again
+func SetupMongoConn(forceSeed bool) (nosql.IDBConn, func(), error) {
+	db, close, err := nosql.InitDialConn(&nosql.DBInitConfig{
+		Host:      DBHOST,
+		DB:        DATABASE_NAME,
+		UName:     "",
+		Passwd:    "",
+		Coll:      COLL_NAME,
+		ArchvColl: ARCHVCOLL_NAME,
+		DBTyp:     reflect.TypeOf(&nosql.MongoDB{}),
 	})
 	if err != nil {
-		return fmt.Errorf("connectDB/DialWithInfo: %s", err)
+		return nil, nil, err
 	}
-	if err := Conn.Ping(); err != nil {
-		return fmt.Errorf("connectDB/Ping: %s", err)
-	}
-	return nil
-}
-
-// flushDB : this will help to flush the database of the previous seed
-// Caution do not call this function in production environment
-func flushDB() {
-	if Conn != nil {
-		Conn.DB(DATABASE_NAME).C(COLL_NAME).RemoveAll(bson.M{})
-	}
-}
-func seedDB() error {
-	byt, err := os.ReadFile("./seed.json")
-	if err != nil {
-		return fmt.Errorf("seedDB/ReadAll %s", err)
-	}
-	// use the session to seed database
-	toInsert := []useracc.UserAccount{}
-	if err := json.Unmarshal(byt, &toInsert); err != nil {
-		return fmt.Errorf("seedDB/json.Unmarshal %s", err)
-	}
-	coll := Conn.DB(DATABASE_NAME).C(COLL_NAME)
-	// NOTE: The address needs to be expanded before it can pushed to the DB
-	// NewUsrAccount : will expand the address
-	for _, item := range toInsert {
-		ua, err := useracc.NewUsrAccount(item.Eml, item.Ttle, item.Phn, item.Addr.Pincode)
-		if err == nil { // no error creating new account
-			err = coll.Insert(ua)
-			if err != nil { // error inserting item into collection
-				continue
-			}
-			// IMP: incase error inserting user account will skip
+	if forceSeed {
+		byt, err := os.ReadFile("./seed.json")
+		if err != nil {
+			return nil, nil, fmt.Errorf("seedDB/ReadAll %s", err)
 		}
-		// IMP: incase of error getting the address, will skip inserting the account
+		toInsert := []useracc.UserAccount{}
+		if err := json.Unmarshal(byt, &toInsert); err != nil {
+			return nil, nil, fmt.Errorf("seedDB/ReadAll %s", err)
+		}
+		// HACK: having to convert to a pointer to get the aggregated session
+		// this cannot be but is ok only since its the testing environment
+		coll := db.(*nosql.MongoDB).Session.DB(DATABASE_NAME).C(COLL_NAME)
+		coll.RemoveAll(bson.M{}) // flushing the db
+		for _, item := range toInsert {
+			ua, err := useracc.NewUsrAccount(item.Eml, item.Ttle, item.Phn, item.Addr.Pincode)
+			if err == nil { // no error creating new account
+				err = coll.Insert(ua)
+				if err != nil { // error inserting item into collection
+					continue
+				}
+			}
+		}
 	}
-	return nil
-}
-
-// TestDBConnection : testing the general DB connection
-// initializing and dialling the database connection
-func TestDBConnection(t *testing.T) {
-	/* ================================
-	testing for happy path - the server and database does exists
-	if the database does not exists it would be implicitly created
-	================================*/
-	t.Log("=========== testing DB connection and init ========")
-	db := nosql.InitDB("localhost:47017", "useraccs", "", "", reflect.TypeOf(&nosql.MongoDB{}))
-	persist, close, err := nosql.DialConnectDB(db, COLL_NAME, ARCHVCOLL_NAME)
-	assert.Nil(t, err, fmt.Sprintf("failed to dial connection on db %s", err))
-	assert.NotNil(t, persist, "nil connection on dial")
-	close()
-	/* ================================
-	testing for host sever that does not exists
-	================================*/
-	t.Log(">> Now testing with false host connection ")
-	// this is when we have the server not correctl spelt and hence the connection should fail
-	_, _, err = nosql.DialConnectDB(nosql.InitDB("somehost:37017", "useraccs", "", "", reflect.TypeOf(&nosql.MongoDB{})), COLL_NAME, ARCHVCOLL_NAME)
-
-	assert.NotNil(t, err, "unexpected nil err when connecting to invalid host")
-	t.Log(">> Now testing with false host connection ")
-	t.Log("=============")
+	return db, close, nil
 }
 
 func TestInsertDeleteUserAccount(t *testing.T) {
 	t.Log("now testing for removing an account")
-	db, close, err := nosql.DialConnectDB(nosql.InitDB("localhost:37017", "useraccs", "", "", reflect.TypeOf(&nosql.MongoDB{})), COLL_NAME, ARCHVCOLL_NAME)
+	db, close, err := SetupMongoConn(true)
 	assert.Nil(t, err, "unexpected error when Connecting to DB")
 	defer close()
 	var result interface{}
@@ -125,17 +91,10 @@ func TestInsertDeleteUserAccount(t *testing.T) {
 }
 
 func TestGetSampleFromColl(t *testing.T) {
-	// ========
-	// setting up the database in the database
-	// ========
-	connectDB()
-	flushDB()
-	seedDB() // seed db will open the connection to database
-	defer Conn.Close()
 	// ==============
 	// dial connecting the database
 	// ==============
-	db, close, err := nosql.DialConnectDB(nosql.InitDB("localhost:47017", DATABASE_NAME, "", "", reflect.TypeOf(&nosql.MongoDB{})), COLL_NAME, ARCHVCOLL_NAME)
+	db, close, err := SetupMongoConn(true)
 	defer close()
 	assert.Nil(t, err, "failed to connect to db")
 	assert.NotNil(t, db, "nil db pointer")
@@ -159,17 +118,10 @@ func TestGetSampleFromColl(t *testing.T) {
 }
 
 func TestGetGetOneFromColl(t *testing.T) {
-	// ========
-	// setting up the database in the database
-	// ========
-	connectDB()
-	flushDB()
-	seedDB() // seed db will open the connection to database
-	defer Conn.Close()
 	// ==============
 	// dial connecting the database
 	// ==============
-	db, close, err := nosql.DialConnectDB(nosql.InitDB("localhost:47017", DATABASE_NAME, "", "", reflect.TypeOf(&nosql.MongoDB{})), COLL_NAME, ARCHVCOLL_NAME)
+	db, close, err := SetupMongoConn(true)
 	defer close()
 	assert.Nil(t, err, "failed to connect to db")
 	assert.NotNil(t, db, "nil db pointer")

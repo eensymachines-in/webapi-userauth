@@ -8,23 +8,24 @@ Queries on the database and the interfaces to configure and dial to connections
 This needs to be moved to a separate package later
 ============================================== */
 import (
-	"fmt"
 	"reflect"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
+// IDBConfig:  behaviours of the DB from the configuration perspective
+// implement this on the nosql db object that can be accessed over IDBConfig
 type IDBConfig interface {
-	SetDefaultColl(c *mgo.Collection) IDBConfig
-	SetArchiveColl(c *mgo.Collection) IDBConfig
+	SetDefaultColl(c *mgo.Collection) IDBConfig // lets you set the default collection
+	SetArchiveColl(c *mgo.Collection) IDBConfig // lets you set the archival collection
 }
 
 // IDBConn : basic nosql database behaviours
 // can init, close and dial connections to databases
 type IDBConn interface {
-	InitConn(host, db, uname, pass string) IDBConn // initializes the db object with dialinfo
-	DialConn(coll, archv string) error             // dials the connection and establishes contact, use IAnyDB to setup
+	// InitConn(host, db, uname, pass string) IDBConn // initializes the db object with dialinfo
+	DialConn(*DBInitConfig) error // dials the connection and establishes contact, use IAnyDB to setup
 	CloseConn()
 }
 
@@ -56,32 +57,33 @@ type IQryable interface {
 	CountFromColl(coll string, flt func() bson.M) (int, error)
 }
 
-// InitDB : creates an instance of the DB service
-// sends the same back over the interface IDBConn for testing the connection
-//
-/*
-
- */
-func InitDB(host, db, uname, pass string, ty reflect.Type) IDBConn {
-	dbAsItf := reflect.New(ty.Elem()).Interface()
-	dbAsItf.(IDBConn).InitConn(host, db, uname, pass)
-	return dbAsItf.(IDBConn)
+// DBInitConfig : flywheel object that gets passed to InitDB for making a new DB instance
+// extend this object if
+type DBInitConfig struct {
+	// server ip where mongo instance is running with port
+	// localhost:47017
+	Host string
+	// Name of the DB that client connects to
+	DB string
+	// Username and Password for the authenticating on the database
+	UName  string
+	Passwd string
+	// Set  of 2 collection name, one for default, other for archival
+	Coll      string
+	ArchvColl string
+	// type of the DB that will be instantiated under IDBConn interface
+	DBTyp reflect.Type
 }
 
-//DialConnectDB		: given the instantiated connection will dial the connection
-// conn				: instantiated connection from InitDB
-//
-/*
-persist, close, err := nosql.DialConnectDB(db, COLL_NAME, ARCHVCOLL_NAME)
-*/
-func DialConnectDB(conn IDBConn, coll, archv string) (IDBConn, func(), error) {
-	// with the given fields all what you need is to see if ping works
-	// if ping works, then shift the handle to IMongoQry or send back error
-	if conn.DialConn(coll, archv) != nil {
-		return conn, nil, fmt.Errorf("failed to connect to DB")
+// InitDialConn : will make instance and dial the connection to database
+// will send the connection over IDBConn with errors if any
+func InitDialConn(cfg *DBInitConfig) (IDBConn, func(), error) {
+	dbAsItf := reflect.New(cfg.DBTyp.Elem()).Interface()
+	conn := dbAsItf.(IDBConn)
+	if err := conn.DialConn(cfg); err != nil {
+		return nil, nil, err
 	}
 	return conn, func() {
-		// to be called from client side
 		conn.CloseConn()
 	}, nil
 }
