@@ -83,6 +83,8 @@ func TestInsertDeleteUserAccount(t *testing.T) {
 	assert.Nil(t, err, "unexpected error when Connecting to DB")
 	defer close()
 	var result interface{}
+	// TODO: complete this test
+	// id to delete is not passed at all ..
 	err = db.(nosql.IQryable).DeleteOneFromColl("useraccs", "", func(id string) bson.M {
 		return bson.M{"_id": bson.IsObjectIdHex(id)}
 	}, &result)

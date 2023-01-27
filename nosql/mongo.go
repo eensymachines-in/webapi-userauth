@@ -130,14 +130,27 @@ func (mgdb *MongoDB) CountFromColl(coll string, flt func() bson.M) (int, error) 
 	return n, nil
 }
 
-func (mgdb *MongoDB) RemoveFromColl(coll string, id string, affected *int) error {
+func (mgdb *MongoDB) RemoveFromColl(coll string, id string, softDel bool, affected *int) error {
 	// remove from the main database , and add into the archived data base
 	// need to see what details are pushed onto the archived database
-	// ASK: where can we get the name of the archival database ?
-	// ASK: it has to be percolated into all functions form a central configuration
+	if softDel {
+		// NOTE: this will backup the document in archival collection and only then delete
+		// NOTE: leaves us with the room to restore documents when needed
+		result := map[string]interface{}{}
+		err := mgdb.GetOneFromColl(coll, func() bson.M {
+			return bson.M{"_id": bson.ObjectIdHex(id)}
+		}, &result)
+		if err != nil {
+			return fmt.Errorf("RemoveFromColl: failed to get item to archive %s", err)
+		}
+		// Now push the resul/t to archival collection
+		if err := mgdb.ArchiveColl.Insert(result); err != nil {
+			return fmt.Errorf("RemoveFromColl: failed to insert in archival collection %s", err)
+		}
+	}
 
 	if err := mgdb.DB("").C(coll).Remove(bson.M{"_id": bson.ObjectIdHex(id)}); err != nil {
-		return fmt.Errorf("failed to remove account from database")
+		return fmt.Errorf("RemoveFromColl: failed to remove account from database %s", err)
 	}
 	*affected = 1
 	return nil

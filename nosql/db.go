@@ -37,7 +37,8 @@ type IQryable interface {
 	// coll : name of the collection
 	// id 	: id as string, cannot be bson id since the interface applies to various nosql databases
 	// affected	: number of documents affected
-	RemoveFromColl(coll string, id string, affected *int) error
+	// softDel	: set this flag to only archive the document and not delete it completely
+	RemoveFromColl(coll string, id string, softDel bool, affected *int) error
 	GetOneFromColl(coll string, flt func() bson.M, result *map[string]interface{}) error
 	// GetSampleFromColl : gets a sample of documents from a collection
 	// sends back the _id object ids as list of ids in a map
