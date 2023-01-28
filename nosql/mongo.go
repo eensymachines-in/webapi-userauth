@@ -101,11 +101,15 @@ func (mgdb *MongoDB) DeleteOneFromColl(coll, id string, flt func(id string) bson
 // result is of the type map[string][]bson.ObjectId{}
 //
 /*
-	var result map[string][]bson.ObjectId
-	if db.GetSampleFromColl("collname", 10, &result)!=nil{
-		fmt.Errorf("failed to get sample from database")
+	var result interface{}
+	err = db.(nosql.IQryable).GetSampleFromColl(COLL_NAME, 10, &result)
+	if err != nil {
+		return
 	}
-	return nil
+	ids := result.(map[string][]bson.ObjectId)
+	for _, id := range ids["sample"]{
+		fmt.Sprintf("%s", id.Hex())
+	}
 */
 func (mgdb *MongoDB) GetSampleFromColl(coll string, size int, result *interface{}) error {
 	res := map[string][]bson.ObjectId{}

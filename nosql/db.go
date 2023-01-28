@@ -54,7 +54,6 @@ type IQryable interface {
 	*/
 	GetSampleFromColl(coll string, size int, result *interface{}) error
 	EditOneFromColl(coll string, flt func() bson.M, result interface{}) error
-	DeleteOneFromColl(coll, id string, flt func(id string) bson.M, result *interface{}) error
 	CountFromColl(coll string, flt func() bson.M) (int, error)
 }
 

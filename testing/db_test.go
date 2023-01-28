@@ -77,19 +77,31 @@ func SetupMongoConn(forceSeed bool) (nosql.IDBConn, func(), error) {
 	return db, close, nil
 }
 
-func TestInsertDeleteUserAccount(t *testing.T) {
+// TestRemoveDoc : aimed at testing RemoveFromColl(coll string, id string, softDel bool, affected *int) error
+func TestRemoveDoc(t *testing.T) {
 	t.Log("now testing for removing an account")
 	db, close, err := SetupMongoConn(true)
-	assert.Nil(t, err, "unexpected error when Connecting to DB")
+	if err != nil { // if the mongo connection was not setup, aborting the entire test
+		t.Error(err)
+		return
+	}
 	defer close()
+	// getting the sample data for test
+	// getting ids of 10 documents that can be used for deletion
 	var result interface{}
-	// TODO: complete this test
-	// id to delete is not passed at all ..
-	err = db.(nosql.IQryable).DeleteOneFromColl("useraccs", "", func(id string) bson.M {
-		return bson.M{"_id": bson.IsObjectIdHex(id)}
-	}, &result)
-	t.Logf("%v", result)
-	t.Log(err)
+	err = db.(nosql.IQryable).GetSampleFromColl(COLL_NAME, 10, &result)
+	if err != nil { // fails to get even the samples, abort test
+		t.Error(err)
+		return
+	}
+	ids := result.(map[string][]bson.ObjectId)
+	// here we go ahead to test deletion of an item from database
+	// Soft deletion
+	for _, id := range ids["sample"] {
+		var count int
+		err := db.(nosql.IQryable).RemoveFromColl(COLL_NAME, id.Hex(), true, &count)
+		assert.Nil(t, err, fmt.Sprintf("Unexpected error when deleting doc with id %s", err))
+	}
 }
 
 func TestGetSampleFromColl(t *testing.T) {
