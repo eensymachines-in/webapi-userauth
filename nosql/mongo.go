@@ -113,6 +113,7 @@ func (mgdb *MongoDB) DeleteOneFromColl(coll, id string, flt func(id string) bson
 */
 func (mgdb *MongoDB) GetSampleFromColl(coll string, size int, result *interface{}) error {
 	res := map[string][]bson.ObjectId{}
+	// TODO: to handle the error here
 	mgdb.DB("").C(coll).Pipe([]bson.M{
 		{"$sample": bson.M{"size": size}},
 		{"$project": bson.M{"_id": 1}},
@@ -157,5 +158,21 @@ func (mgdb *MongoDB) RemoveFromColl(coll string, id string, softDel bool, affect
 		return fmt.Errorf("RemoveFromColl: failed to remove account from database %s", err)
 	}
 	*affected = 1
+	return nil
+}
+
+// FilterFromColl : While GetOneFromColl is implemented to get one item this applies filter to get multiple items
+// filter here can be customized from the client call
+// TODO: come back here to review this and test it
+func (mgdb *MongoDB) FilterFromColl(coll string, flt func() bson.M, result *map[string][]bson.ObjectId) error {
+	res := map[string][]bson.ObjectId{}
+	mgdb.DB("").C(coll).Pipe([]bson.M{
+		{"$match": flt()},
+		// matches the documents and then pushes them in a slice
+		// this can help get the ids all clubbed in one
+		{"$group": bson.M{"_id": "", "all": bson.M{"$push": "$_id"}}},
+		{"$project": bson.M{"_id": 0, "all": 1}},
+	}).One(res)
+	*result = res
 	return nil
 }
