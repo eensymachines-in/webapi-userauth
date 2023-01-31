@@ -156,3 +156,32 @@ func TestGetGetOneFromColl(t *testing.T) {
 	assert.Nil(t, err, "Unexpected error when GetOneFromColl")
 	t.Log(ua)
 }
+
+// TestFilterFromColl : filteration of documents on custom filter to get all ids
+func TestFilterFromColl(t *testing.T) {
+	db, close, err := SetupMongoConn(true)
+	defer close()
+	assert.Nil(t, err, "failed to connect to db")
+	assert.NotNil(t, db, "nil db pointer")
+	// ===========
+	var result map[string][]bson.ObjectId
+	err = db.(nosql.IQryable).FilterFromColl(COLL_NAME, func() bson.M {
+		return bson.M{"email": "cdobrowski0@pcworld.com"}
+	}, &result)
+	assert.Nil(t, err, "Unexpected error when FilterFromColl")
+	t.Log(result)
+	// ==========
+	err = db.(nosql.IQryable).FilterFromColl("", func() bson.M {
+		return bson.M{"email": "cdobrowski0@pcworld.com"}
+	}, &result)
+	assert.NotNil(t, err, "unexpected not nil err")
+	// ==============
+	err = db.(nosql.IQryable).FilterFromColl(COLL_NAME, nil, &result)
+	assert.NotNil(t, err, "unexpected not nil err")
+
+	err = db.(nosql.IQryable).FilterFromColl(COLL_NAME, func() bson.M {
+		return bson.M{"email": "someone@unknown.com"}
+	}, &result)
+	assert.NotNil(t, err, "Unexpected error when FilterFromColl")
+	t.Log(result)
+}

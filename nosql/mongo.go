@@ -165,14 +165,23 @@ func (mgdb *MongoDB) RemoveFromColl(coll string, id string, softDel bool, affect
 // filter here can be customized from the client call
 // TODO: come back here to review this and test it
 func (mgdb *MongoDB) FilterFromColl(coll string, flt func() bson.M, result *map[string][]bson.ObjectId) error {
+	if coll == "" || flt == nil {
+		return fmt.Errorf("FilterFromColl: Invalid collection name or filter function")
+	}
 	res := map[string][]bson.ObjectId{}
-	mgdb.DB("").C(coll).Pipe([]bson.M{
+	err := mgdb.DB("").C(coll).Pipe([]bson.M{
 		{"$match": flt()},
 		// matches the documents and then pushes them in a slice
 		// this can help get the ids all clubbed in one
 		{"$group": bson.M{"_id": "", "all": bson.M{"$push": "$_id"}}},
 		{"$project": bson.M{"_id": 0, "all": 1}},
-	}).One(res)
+	}).One(&res) //will err when no docs found
+	if err != nil {
+		if err == mgo.ErrNotFound {
+			return fmt.Errorf("FilterFromColl: No matching documents")
+		}
+		return fmt.Errorf("FilterFromColl: failed query to get filtered docs %s", err)
+	}
 	*result = res
 	return nil
 }

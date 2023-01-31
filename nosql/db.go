@@ -55,6 +55,16 @@ type IQryable interface {
 	GetSampleFromColl(coll string, size int, result *interface{}) error
 	EditOneFromColl(coll string, flt func() bson.M, result interface{}) error
 	CountFromColl(coll string, flt func() bson.M) (int, error)
+	// FilterFromColl : filters documents on custom filter , returns a slice of ids of such documents
+	// Use GetOneFromColl to get detailed document object
+	/*
+		var result *map[string][]bson.ObjectId
+		if db.FilterFromColl("collname", 10, &result)!=nil{
+			fmt.Errorf("failed to get filtered documents from database")
+		}
+		return nil
+	*/
+	FilterFromColl(coll string, flt func() bson.M, result *map[string][]bson.ObjectId) error
 }
 
 // DBInitConfig : flywheel object that gets passed to InitDB for making a new DB instance
