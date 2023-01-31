@@ -66,6 +66,9 @@ func (mgdb *MongoDB) CloseConn() {
 // need not instantiate result before calling
 // round trip to json byt then to object you seek
 func (mgdb *MongoDB) GetOneFromColl(coll string, flt func() bson.M, result *map[string]interface{}) error {
+	if coll == "" || flt == nil {
+		return fmt.Errorf("GetOneFromColl: Invalid collection name or filter function")
+	}
 	qr := map[string]interface{}{} // result map onto which the object is imprinted
 	err := mgdb.DB("").C(coll).Find(flt()).One(&qr)
 	if err != nil {
@@ -153,7 +156,6 @@ func (mgdb *MongoDB) RemoveFromColl(coll string, id string, softDel bool, affect
 			return fmt.Errorf("RemoveFromColl: failed to insert in archival collection %s", err)
 		}
 	}
-
 	if err := mgdb.DB("").C(coll).Remove(bson.M{"_id": bson.ObjectIdHex(id)}); err != nil {
 		return fmt.Errorf("RemoveFromColl: failed to remove account from database %s", err)
 	}
