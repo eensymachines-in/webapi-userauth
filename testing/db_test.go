@@ -114,21 +114,22 @@ func TestGetSampleFromColl(t *testing.T) {
 	assert.NotNil(t, db, "nil db pointer")
 	// ================
 	var result interface{}
-	err = db.(nosql.IQryable).GetSampleFromColl(COLL_NAME, 10, &result)
+	err = db.(nosql.IQryable).GetSampleFromColl(COLL_NAME, uint32(10), &result)
 	assert.Nil(t, err, "unexpected error when GetSampleFromColl")
 	assert.NotNil(t, result, "nil result for GetSampleFromColl")
 	byt, err := json.Marshal(result)
 	assert.Nil(t, err, "unexpected error when json.Marshal")
 	t.Log(string(byt))
+	// NOTE: this no longer is needed since the interface now expects uint32 as the size datatype
 	// ================
 	// GetSampleFromColl with invalid size
-	err = db.(nosql.IQryable).GetSampleFromColl(COLL_NAME, -10, &result)
-	// with invalid size, you dont get any error
-	// the sample set would be empty
-	assert.Nil(t, err, "Unexpected error when getting sample with invalid size")
-	ids := result.(map[string][]bson.ObjectId)
-	sample := ids["sample"]
-	assert.Equal(t, 0, len(sample), "Unexpected non-empty sample size")
+	// err = db.(nosql.IQryable).GetSampleFromColl(COLL_NAME, -10, &result)
+	// // with invalid size, you dont get any error
+	// // the sample set would be empty
+	// assert.Nil(t, err, "Unexpected error when getting sample with invalid size")
+	// ids := result.(map[string][]bson.ObjectId)
+	// sample := ids["sample"]
+	// assert.Equal(t, 0, len(sample), "Unexpected non-empty sample size")
 	/* ==========
 	- Negative tests
 	*/

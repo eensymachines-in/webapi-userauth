@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -43,7 +44,12 @@ func (mgdb *MongoDB) DialConn(c *DBInitConfig) error {
 		Password: c.Passwd,
 	})
 	if err != nil {
-		return fmt.Errorf("DialConn: failed to connect to mongo instance: %s", err)
+		return ThrowErrNoSQL(ErrNoConn).SetContext("DialConn").SetInternalErr(err).SetDiagnosis("check for the connection params").SetUsrMsg("Something on server is broken right now, try after some time").SetLogEntry(log.WithFields(log.Fields{
+			"host":  c.Host,
+			"db":    c.DB,
+			"uname": c.UName,
+			"pass":  c.Passwd,
+		}))
 	}
 	// Reads may not be entirely up-to-date, but they will always see the
 	// history of changes moving forward, the data read will be consistent
@@ -60,19 +66,28 @@ func (mgdb *MongoDB) CloseConn() {
 	mgdb.Close()
 }
 
-// GetOneFromColl : irrespective of the collection this one calls to get on specific from the collection
+// GetOneFromColl 	: irrespective of the collection this one calls to get on specific from the collection
+// result			:need not instantiate  before calling
 // Provide the name of the collection and the flt as callback
-// errors if the query fails.
-// need not instantiate result before calling
-// round trip to json byt then to object you seek
+// errors if the query fails, if the collection name is invalid, and if the filter is nil
 func (mgdb *MongoDB) GetOneFromColl(coll string, flt func() bson.M, result *map[string]interface{}) error {
-	if coll == "" || flt == nil {
-		return fmt.Errorf("GetOneFromColl: Invalid collection name or filter function")
+	if coll == "" {
+		// return fmt.Errorf("GetOneFromColl: Invalid collection name or filter function")
+		return ThrowErrNoSQL(ErrInvldColl).SetContext("GetOneFromColl").SetInternalErr(nil).SetDiagnosis("check for name of collection").SetUsrMsg("could not get data at this time").SetLogEntry(log.WithFields(log.Fields{
+			"coll": coll,
+		}))
+	}
+	if flt == nil {
+		return ThrowErrNoSQL(ErrInvldFlt).SetContext("GetOneFromColl").SetInternalErr(nil).SetDiagnosis("check for name of collection").SetUsrMsg("could not get data at this time").SetLogEntry(log.WithFields(log.Fields{
+			"filter": flt,
+		}))
 	}
 	qr := map[string]interface{}{} // result map onto which the object is imprinted
 	err := mgdb.DB("").C(coll).Find(flt()).One(&qr)
 	if err != nil {
-		return fmt.Errorf("GetOneFromColl: %s", err)
+		return ThrowErrNoSQL(ErrNoConn).SetContext("GetOneFromColl").SetInternalErr(nil).SetDiagnosis("check database connection").SetUsrMsg("could not get data at this time").SetLogEntry(log.WithFields(log.Fields{
+			"err": err,
+		}))
 	}
 	*result = qr
 	return nil
@@ -82,19 +97,22 @@ func (mgdb *MongoDB) GetOneFromColl(coll string, flt func() bson.M, result *map[
 // DB name is not required since empty string will lead to calling the database thats used for dialling within the dialinfo
 // error only when the query fails
 func (mgdb *MongoDB) AddToColl(obj interface{}, coll string) (int, error) {
+	if coll == "" {
+		return -1, ThrowErrNoSQL(ErrInvldColl).SetContext("AddToColl").SetInternalErr(nil).SetDiagnosis("check for name of collection").SetUsrMsg("could not get data at this time").SetLogEntry(log.WithFields(log.Fields{
+			"coll": coll,
+		}))
+	}
+	if obj == nil {
+		return -1, ThrowErrNoSQL(ErrEmptyInsert).SetContext("AddToColl").SetInternalErr(nil).SetDiagnosis("object to insert cannot be nil").SetUsrMsg("data to insert is invalid")
+	}
 	if err := mgdb.DB("").C(coll).Insert(obj); err != nil {
-		return 0, fmt.Errorf("%s: failed to add one to collection", err)
+		return -1, ThrowErrNoSQL(ErrQryFail).SetContext("AddToColl").SetInternalErr(err).SetDiagnosis("check inputs to query and try again").SetUsrMsg("could not add item to database").SetLogEntry(log.WithFields(log.Fields{
+			"err": err,
+		}))
 	}
 	return 1, nil
 }
 func (mgdb *MongoDB) EditOneFromColl(coll string, flt func() bson.M, result interface{}) error {
-	return nil
-}
-func (mgdb *MongoDB) DeleteOneFromColl(coll, id string, flt func(id string) bson.M, result *interface{}) error {
-	if err := mgdb.DB("").C(coll).Remove(flt(id)); err != nil {
-		return fmt.Errorf("%s: failed to remove from collection", err)
-	}
-	*result = map[string]interface{}{"ok": 1}
 	return nil
 }
 
@@ -114,7 +132,12 @@ func (mgdb *MongoDB) DeleteOneFromColl(coll, id string, flt func(id string) bson
 		fmt.Sprintf("%s", id.Hex())
 	}
 */
-func (mgdb *MongoDB) GetSampleFromColl(coll string, size int, result *interface{}) error {
+func (mgdb *MongoDB) GetSampleFromColl(coll string, size uint32, result *interface{}) error {
+	if coll == "" {
+		return ThrowErrNoSQL(ErrInvldColl).SetContext("AddToColl").SetInternalErr(nil).SetDiagnosis("check for name of collection").SetUsrMsg("could not get data at this time").SetLogEntry(log.WithFields(log.Fields{
+			"coll": coll,
+		}))
+	}
 	res := map[string][]bson.ObjectId{}
 	// TODO: to handle the error here
 	mgdb.DB("").C(coll).Pipe([]bson.M{
@@ -131,6 +154,11 @@ func (mgdb *MongoDB) GetSampleFromColl(coll string, size int, result *interface{
 // coll		: ithe collection on which the filter applies
 // flt		: filter the documents on the collection using this
 func (mgdb *MongoDB) CountFromColl(coll string, flt func() bson.M) (int, error) {
+	if coll == "" {
+		return -1, ThrowErrNoSQL(ErrInvldColl).SetContext("AddToColl").SetInternalErr(nil).SetDiagnosis("check for name of collection").SetUsrMsg("could not get data at this time").SetLogEntry(log.WithFields(log.Fields{
+			"coll": coll,
+		}))
+	}
 	n, err := mgdb.DB("").C(coll).Find(flt()).Count()
 	if err != nil {
 		return -1, err

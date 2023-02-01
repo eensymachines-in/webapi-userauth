@@ -21,6 +21,8 @@ const (
 	ErrQryFail                       // query fails
 	ErrNoConn                        // connection to the database failed
 	ErrInvldFlt                      // query filter is nil or invalid
+	ErrInvldColl                     // invalid colleciton name
+	ErrEmptyInsert                   // attempt to insert an empty item in the datbaase
 )
 
 // ErrNoSQL : custom error for no sql db
@@ -30,11 +32,12 @@ type ErrNoSQL struct {
 	Context   string         // location from where the error has originated
 	Diagnosis string         // remedy for the error
 	UsrMsg    string         // message of the error shown on the client
+	LogEntry  *log.Entry     // this helps in debugging the error on the server
 }
 
-func ThrowErrNoSQL(code ErrCodeDBNoSQL) *ErrNoSQL {
+func ThrowErrNoSQL(code uint8) *ErrNoSQL {
 	return &ErrNoSQL{
-		Code: code,
+		Code: ErrCodeDBNoSQL(code),
 	}
 }
 
@@ -56,6 +59,11 @@ func (ens *ErrNoSQL) SetUsrMsg(msg string) *ErrNoSQL {
 	return ens
 }
 
+func (ens *ErrNoSQL) SetLogEntry(le *log.Entry) *ErrNoSQL {
+	ens.LogEntry = le
+	return ens
+}
+
 // Error : so that we have conformation on the error interface
 // use this to print error messages fit for user consumption
 func (ens *ErrNoSQL) Error() string {
@@ -65,5 +73,5 @@ func (ens *ErrNoSQL) Error() string {
 // Logs : logs the error ith code and internals
 // does not set the log preferences
 func (ens *ErrNoSQL) Log() {
-	log.Errorf("%d: %s: %s", ens.Code, ens.Internal, ens.Context)
+	ens.LogEntry.Errorf("%d: %s: %s", ens.Code, ens.Internal, ens.Context)
 }

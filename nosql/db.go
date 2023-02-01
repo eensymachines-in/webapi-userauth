@@ -52,7 +52,7 @@ type IQryable interface {
 		}
 		return nil
 	*/
-	GetSampleFromColl(coll string, size int, result *interface{}) error
+	GetSampleFromColl(coll string, size uint32, result *interface{}) error
 	EditOneFromColl(coll string, flt func() bson.M, result interface{}) error
 	CountFromColl(coll string, flt func() bson.M) (int, error)
 	// FilterFromColl : filters documents on custom filter , returns a slice of ids of such documents
