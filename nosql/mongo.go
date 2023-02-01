@@ -22,16 +22,14 @@ type MongoDB struct {
 	ArchiveColl  *mgo.Collection // soft delete operations will shift the data to archive coll
 }
 
-func (mgdb *MongoDB) SetDefaultColl(c *mgo.Collection) IDBConfig {
-	mgdb.DefaultColl = c
-	return mgdb
+// DialConn		: will use the DB's configuration to dial the connection.
+// Error if DialWithInfo fails internally
+//
+/*
+if err := conn.DialConn(cfg); err != nil {
+	return nil, nil, err
 }
-func (mgdb *MongoDB) SetArchiveColl(c *mgo.Collection) IDBConfig {
-	mgdb.ArchiveColl = c
-	return mgdb
-}
-
-// DialConn		: will use the DB's configuration to dial the connection
+*/
 func (mgdb *MongoDB) DialConn(c *DBInitConfig) error {
 	// Dials an mgo connection with DBInitConfig
 	// error when session is unreachable
@@ -58,7 +56,8 @@ func (mgdb *MongoDB) DialConn(c *DBInitConfig) error {
 	// http://godoc.org/labix.org/v2/mgo#Session.SetMode
 	mgdb.Session.SetMode(mgo.Monotonic, true)
 	// and also assign the collections
-	mgdb.SetDefaultColl(mgdb.Session.DB("").C(c.Coll)).SetArchiveColl(mgdb.Session.DB("").C(c.ArchvColl))
+	mgdb.DefaultColl = mgdb.Session.DB(c.DB).C(c.Coll)
+	mgdb.ArchiveColl = mgdb.Session.DB(c.DB).C(c.ArchvColl)
 	return nil
 
 }

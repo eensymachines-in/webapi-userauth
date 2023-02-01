@@ -10,16 +10,8 @@ This needs to be moved to a separate package later
 import (
 	"reflect"
 
-	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
-
-// IDBConfig:  behaviours of the DB from the configuration perspective
-// implement this on the nosql db object that can be accessed over IDBConfig
-type IDBConfig interface {
-	SetDefaultColl(c *mgo.Collection) IDBConfig // lets you set the default collection
-	SetArchiveColl(c *mgo.Collection) IDBConfig // lets you set the archival collection
-}
 
 // IDBConn : basic nosql database behaviours
 // can init, close and dial connections to databases
@@ -68,7 +60,7 @@ type IQryable interface {
 }
 
 // DBInitConfig : flywheel object that gets passed to InitDB for making a new DB instance
-// extend this object if
+// extend this object if required to send in more params
 type DBInitConfig struct {
 	// server ip where mongo instance is running with port
 	// localhost:47017
