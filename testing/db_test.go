@@ -129,6 +129,11 @@ func TestGetSampleFromColl(t *testing.T) {
 	ids := result.(map[string][]bson.ObjectId)
 	sample := ids["sample"]
 	assert.Equal(t, 0, len(sample), "Unexpected non-empty sample size")
+	/* ==========
+	- Negative tests
+	*/
+	err = db.(nosql.IQryable).GetSampleFromColl("", 10, &result)
+	assert.NotNil(t, err, "Error nil unexpected")
 }
 
 func TestGetGetOneFromColl(t *testing.T) {
@@ -155,6 +160,13 @@ func TestGetGetOneFromColl(t *testing.T) {
 	json.Unmarshal(byt, &ua)
 	assert.Nil(t, err, "Unexpected error when GetOneFromColl")
 	t.Log(ua)
+	// Negative tests
+	// ===============
+	err = db.(nosql.IQryable).GetOneFromColl("", func() bson.M { return bson.M{"_id": sample[0]} }, &uaMap)
+	assert.NotNil(t, err, "Nil Error unexpected")
+
+	err = db.(nosql.IQryable).GetOneFromColl(COLL_NAME, nil, &uaMap)
+	assert.NotNil(t, err, "Nil Error unexpected")
 }
 
 // TestFilterFromColl : filteration of documents on custom filter to get all ids
