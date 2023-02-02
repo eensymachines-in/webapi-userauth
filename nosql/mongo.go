@@ -153,13 +153,17 @@ func (mgdb *MongoDB) GetSampleFromColl(coll string, size uint32, result *interfa
 		}))
 	}
 	res := map[string][]bson.ObjectId{}
-	// TODO: to handle the error here
-	mgdb.DB("").C(coll).Pipe([]bson.M{
+	err := mgdb.DB("").C(coll).Pipe([]bson.M{
 		{"$sample": bson.M{"size": size}},
 		{"$project": bson.M{"_id": 1}},
 		{"$group": bson.M{"_id": "", "sample": bson.M{"$push": "$_id"}}},
 		{"$project": bson.M{"_id": 0, "sample": 1}},
 	}).One(&res)
+	if err != nil {
+		return ThrowErrNoSQL(ErrQryFail).SetContext("GetSampleFromColl").SetInternalErr(err).SetDiagnosis("").SetUsrMsg(MSG_DATA_FAIL).SetLogEntry(log.WithFields(log.Fields{
+			"err": err,
+		}))
+	}
 	*result = res
 	return nil
 }
