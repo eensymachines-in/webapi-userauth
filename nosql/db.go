@@ -45,7 +45,10 @@ type IQryable interface {
 		return nil
 	*/
 	GetSampleFromColl(coll string, size uint32, result *interface{}) error
-	EditOneFromColl(coll string, flt func() bson.M, result interface{}) error
+	// EditOneFromColl : patching documents on selection
+	// updates many documents at once - depends on the flt()
+	// patch :  callback that sends out bson.M{} only to $set clauses
+	EditOneFromColl(coll string, flt, patch func() bson.M, countUpdated *int) error
 	CountFromColl(coll string, flt func() bson.M) (int, error)
 	// FilterFromColl : filters documents on custom filter , returns a slice of ids of such documents
 	// Use GetOneFromColl to get detailed document object
@@ -80,6 +83,8 @@ type DBInitConfig struct {
 // InitDialConn : will make instance and dial the connection to database
 // will send the connection over IDBConn with errors if any
 func InitDialConn(cfg *DBInitConfig) (IDBConn, func(), error) {
+	// IMP: since reflection, no chance of catching errors related to interface non-conformance at build time
+	// mongodb database is not a type IQry - usually a build time error
 	dbAsItf := reflect.New(cfg.DBTyp.Elem()).Interface()
 	conn := dbAsItf.(IDBConn)
 	if err := conn.DialConn(cfg); err != nil {

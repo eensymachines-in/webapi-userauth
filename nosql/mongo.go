@@ -126,7 +126,16 @@ func (mgdb *MongoDB) AddToColl(obj interface{}, coll string) (int, error) {
 	}
 	return 1, nil
 }
-func (mgdb *MongoDB) EditOneFromColl(coll string, flt func() bson.M, result interface{}) error {
+
+func (mgdb *MongoDB) EditOneFromColl(coll string, flt, patch func() bson.M, countUpdated *int) error {
+	// handle coll invalidity
+	change, err := mgdb.DB("").C(coll).UpdateAll(flt(), patch())
+	if err != nil {
+		return ThrowErrNoSQL(ErrQryFail).SetContext("EditOneFromColl").SetInternalErr(err).SetUsrMsg(MSG_DATA_FAIL).SetLogEntry(log.WithFields(log.Fields{
+			"err": err,
+		}))
+	}
+	*countUpdated = change.Updated
 	return nil
 }
 

@@ -198,3 +198,31 @@ func TestFilterFromColl(t *testing.T) {
 	assert.NotNil(t, err, "Unexpected error when FilterFromColl")
 	t.Log(result)
 }
+
+func TestEditOneFromColl(t *testing.T) {
+	db, close, err := SetupMongoConn(true)
+	defer close()
+	assert.Nil(t, err, "failed to connect to db")
+	assert.NotNil(t, db, "nil db pointer")
+	// ===========
+	// Simple +ve test for count of documents updated
+	var count int
+	newTitle := "NewTitle"
+	err = db.(nosql.IQryable).EditOneFromColl(COLL_NAME, func() bson.M {
+		return bson.M{
+			"email": "cdobrowski0@pcworld.com",
+		} // selection filter
+	}, func() bson.M {
+		return bson.M{
+			"$set": bson.M{"title": newTitle},
+		} // setting action
+	}, &count)
+	assert.Nil(t, err, "Unexpected error when FilterFromColl")
+	assert.Equal(t, count, 1, "Unexpected number of documents updated")
+	// test to know if the document was updated
+	var browski useracc.UserAccount
+	db.(*nosql.MongoDB).DB("").C(COLL_NAME).Find(bson.M{
+		"email": "cdobrowski0@pcworld.com",
+	}).One(&browski)
+	assert.Equal(t, newTitle, browski.Ttle, "Update query hasnt really updated the document")
+}
