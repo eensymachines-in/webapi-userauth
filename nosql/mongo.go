@@ -128,7 +128,17 @@ func (mgdb *MongoDB) AddToColl(obj interface{}, coll string) (int, error) {
 }
 
 func (mgdb *MongoDB) EditOneFromColl(coll string, flt, patch func() bson.M, countUpdated *int) error {
-	// handle coll invalidity
+	if coll == "" {
+		return ThrowErrNoSQL(ErrInvldColl).SetContext("EditOneFromColl").SetInternalErr(nil).SetDiagnosis("check for name of collection").SetUsrMsg(MSG_DATA_FAIL).SetLogEntry(log.WithFields(log.Fields{
+			"coll": coll,
+		}))
+	}
+	if flt == nil || patch == nil {
+		return ThrowErrNoSQL(ErrInvldFlt).SetContext("EditOneFromColl").SetInternalErr(nil).SetDiagnosis("check for query input params").SetUsrMsg(MSG_DATA_FAIL).SetLogEntry(log.WithFields(log.Fields{
+			"flt":   flt,
+			"patch": patch,
+		}))
+	}
 	change, err := mgdb.DB("").C(coll).UpdateAll(flt(), patch())
 	if err != nil {
 		return ThrowErrNoSQL(ErrQryFail).SetContext("EditOneFromColl").SetInternalErr(err).SetUsrMsg(MSG_DATA_FAIL).SetLogEntry(log.WithFields(log.Fields{

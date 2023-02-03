@@ -200,6 +200,7 @@ func TestFilterFromColl(t *testing.T) {
 }
 
 func TestEditOneFromColl(t *testing.T) {
+	// NOTE: setting up the test data and database connections
 	db, close, err := SetupMongoConn(true)
 	defer close()
 	assert.Nil(t, err, "failed to connect to db")
@@ -219,10 +220,53 @@ func TestEditOneFromColl(t *testing.T) {
 	}, &count)
 	assert.Nil(t, err, "Unexpected error when FilterFromColl")
 	assert.Equal(t, count, 1, "Unexpected number of documents updated")
-	// test to know if the document was updated
+
+	// TEST: to know if the document is +vely updated
 	var browski useracc.UserAccount
 	db.(*nosql.MongoDB).DB("").C(COLL_NAME).Find(bson.M{
 		"email": "cdobrowski0@pcworld.com",
 	}).One(&browski)
 	assert.Equal(t, newTitle, browski.Ttle, "Update query hasnt really updated the document")
+
+	// TEST: when colleciton is invalid
+	err = db.(nosql.IQryable).EditOneFromColl("", func() bson.M {
+		return bson.M{
+			"email": "cdobrowski0@pcworld.com",
+		} // selection filter
+	}, func() bson.M {
+		return bson.M{
+			"$set": bson.M{"title": newTitle},
+		} // setting action
+	}, &count)
+	assert.NotNil(t, err, "Unexpected error not nil when invalid collection")
+
+	// TEST: invalid filter
+	err = db.(nosql.IQryable).EditOneFromColl("", nil, func() bson.M {
+		return bson.M{
+			"$set": bson.M{"title": newTitle},
+		} // setting action
+	}, &count)
+	assert.NotNil(t, err, "Unexpected error not nil when invalid filter")
+
+	// TEST: when patch is invalid
+	err = db.(nosql.IQryable).EditOneFromColl("", func() bson.M {
+		return bson.M{
+			"email": "cdobrowski0@pcworld.com",
+		} // selection filter
+	}, nil, &count)
+	assert.NotNil(t, err, "Unexpected error not nil when invalid patch")
+
+	// TEST: when filter finds 0 documents to update
+	err = db.(nosql.IQryable).EditOneFromColl(COLL_NAME, func() bson.M {
+		return bson.M{
+			// NOTE: this email filter will fetch 0 documents
+			"email": "cdobrowski0@theoffice.com",
+		} // selection filter
+	}, func() bson.M {
+		return bson.M{
+			"$set": bson.M{"title": newTitle},
+		}
+	}, &count)
+	assert.Nil(t, err, "Unexpected error when FilterFromColl")
+	assert.Equal(t, count, 0, "Unexpected number of documents updated")
 }
