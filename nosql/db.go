@@ -23,6 +23,18 @@ type IDBConn interface {
 
 // IQryable : basic mongoquery beahviour facilitating crud operations
 type IQryable interface {
+	// AddToColl : this will add one data to the collection
+	// DB name is not required since empty string will lead to calling the database thats used for dialling within the dialinfo
+	// error only when the query fails
+	// no check for duplicacy - or validation on document fields.
+	/*
+		toAdd := bson.M{}
+		added , err = db.(nosql.IQryable).AddToColl(toAdd,COLL_NAME)
+		if err != nil {
+			return
+		}
+		fmt.Printf("added %d items to the collection", added)
+	*/
 	AddToColl(obj interface{}, coll string) (int, error) // capable of adding one or more items to the same collection
 	// RemoveFromColl : will remove item from the collection
 	// Whether or not the item will be maintained in the archive collection is contextual to the business logic
@@ -30,7 +42,26 @@ type IQryable interface {
 	// id 	: id as string, cannot be bson id since the interface applies to various nosql databases
 	// affected	: number of documents affected
 	// softDel	: set this flag to only archive the document and not delete it completely
+	/*
+		var count int
+		removed, err := db.(nosql.IQryable).RemoveFromColl(COLL_NAME, id.Hex(), true, &count)
+		if err != nil {
+			return
+		}
+		fmt.Printf("deleted %d items to the collection", removed)
+	*/
 	RemoveFromColl(coll string, id string, softDel bool, affected *int) error
+	// GetOneFromColl 	: irrespective of the collection this one calls to get on specific from the collection
+	// result			:need not instantiate  before calling
+	// Provide the name of the collection and the flt as callback
+	// errors if the query fails, if the collection name is invalid, and if the filter is nil
+	/*
+		var result interface{}
+		db.(nosql.IQryable).GetSampleFromColl(COLL_NAME, 1, &result)
+		ids := result.(map[string][]bson.ObjectId)
+		sample := ids["sample"]
+		assert.Equal(t, 1, len(sample), "Unexpected number of items in the sample")
+	*/
 	GetOneFromColl(coll string, flt func() bson.M, result *map[string]interface{}) error
 	// GetSampleFromColl : gets a sample of documents from a collection
 	// sends back the _id object ids as list of ids in a map
@@ -38,17 +69,30 @@ type IQryable interface {
 	// result is of the type map[string][]bson.ObjectId{}
 	//
 	/*
-		var result map[string][]bson.ObjectId
-		if db.GetSampleFromColl("collname", 10, &result)!=nil{
-			fmt.Errorf("failed to get sample from database")
-		}
-		return nil
+		ua := useracc.UserAccount{}
+		var uaMap map[string]interface{}
+		err = db.(nosql.IQryable).GetOneFromColl(COLL_NAME, func() bson.M { return bson.M{"_id": sample[0]} }, &uaMap)
 	*/
 	GetSampleFromColl(coll string, size uint32, result *interface{}) error
 	// EditOneFromColl : patching documents on selection
 	// updates many documents at once - depends on the flt()
 	// patch :  callback that sends out bson.M{} only to $set clauses
+	//
+	/*
+		err = db.(nosql.IQryable).EditOneFromColl(COLL_NAME, func() bson.M {
+			return bson.M{
+				"email": "cdobrowski0@pcworld.com",
+			} // selection filter
+		}, func() bson.M {
+			return bson.M{
+				"$set": bson.M{"title": newTitle},
+			} // setting action
+		}, &count)
+	*/
 	EditOneFromColl(coll string, flt, patch func() bson.M, countUpdated *int) error
+	// CountFromColl : for the given filter on the collection this can get count of documents
+	// coll		: ithe collection on which the filter applies
+	// flt		: filter the documents on the collection using this
 	CountFromColl(coll string, flt func() bson.M) (int, error)
 	// FilterFromColl : filters documents on custom filter , returns a slice of ids of such documents
 	// Use GetOneFromColl to get detailed document object

@@ -79,11 +79,6 @@ func (mgdb *MongoDB) DialConn(c *DBInitConfig) error {
 func (mgdb *MongoDB) CloseConn() {
 	mgdb.Close()
 }
-
-// GetOneFromColl 	: irrespective of the collection this one calls to get on specific from the collection
-// result			:need not instantiate  before calling
-// Provide the name of the collection and the flt as callback
-// errors if the query fails, if the collection name is invalid, and if the filter is nil
 func (mgdb *MongoDB) GetOneFromColl(coll string, flt func() bson.M, result *map[string]interface{}) error {
 	if coll == "" {
 		// return fmt.Errorf("GetOneFromColl: Invalid collection name or filter function")
@@ -106,10 +101,6 @@ func (mgdb *MongoDB) GetOneFromColl(coll string, flt func() bson.M, result *map[
 	*result = qr
 	return nil
 }
-
-// AddToColl : this will add one data to the collection
-// DB name is not required since empty string will lead to calling the database thats used for dialling within the dialinfo
-// error only when the query fails
 func (mgdb *MongoDB) AddToColl(obj interface{}, coll string) (int, error) {
 	if coll == "" {
 		return -1, ThrowErrNoSQL(ErrInvldColl).SetContext("AddToColl").SetInternalErr(nil).SetDiagnosis("check for name of collection").SetUsrMsg(MSG_DATA_FAIL).SetLogEntry(log.WithFields(log.Fields{
@@ -148,23 +139,6 @@ func (mgdb *MongoDB) EditOneFromColl(coll string, flt, patch func() bson.M, coun
 	*countUpdated = change.Updated
 	return nil
 }
-
-// GetSampleFromColl : gets a sample of documents from a collection
-// sends back the _id object ids as list of ids in a map
-// result["sample"] gives the result of all the ids
-// result is of the type map[string][]bson.ObjectId{}
-//
-/*
-	var result interface{}
-	err = db.(nosql.IQryable).GetSampleFromColl(COLL_NAME, 10, &result)
-	if err != nil {
-		return
-	}
-	ids := result.(map[string][]bson.ObjectId)
-	for _, id := range ids["sample"]{
-		fmt.Sprintf("%s", id.Hex())
-	}
-*/
 func (mgdb *MongoDB) GetSampleFromColl(coll string, size uint32, result *interface{}) error {
 	if coll == "" {
 		return ThrowErrNoSQL(ErrInvldColl).SetContext("AddToColl").SetInternalErr(nil).SetDiagnosis("check for name of collection").SetUsrMsg(MSG_DATA_FAIL).SetLogEntry(log.WithFields(log.Fields{
@@ -187,9 +161,6 @@ func (mgdb *MongoDB) GetSampleFromColl(coll string, size uint32, result *interfa
 	return nil
 }
 
-// CountFromColl : for the given filter on the collection this can get count of documents
-// coll		: ithe collection on which the filter applies
-// flt		: filter the documents on the collection using this
 func (mgdb *MongoDB) CountFromColl(coll string, flt func() bson.M) (int, error) {
 	if coll == "" {
 		return -1, ThrowErrNoSQL(ErrInvldColl).SetContext("CountFromColl").SetInternalErr(nil).SetDiagnosis("check for name of collection").SetUsrMsg(MSG_DATA_FAIL).SetLogEntry(log.WithFields(log.Fields{
@@ -236,9 +207,6 @@ func (mgdb *MongoDB) RemoveFromColl(coll string, id string, softDel bool, affect
 	return nil
 }
 
-// FilterFromColl : While GetOneFromColl is implemented to get one item this applies filter to get multiple items
-// filter here can be customized from the client call
-// TODO: come back here to review this and test it
 func (mgdb *MongoDB) FilterFromColl(coll string, flt func() bson.M, result *map[string][]bson.ObjectId) error {
 	if coll == "" {
 		return ThrowErrNoSQL(ErrInvldColl).SetContext("FilterFromColl").SetInternalErr(nil).SetDiagnosis("check for name of collection").SetUsrMsg(MSG_DATA_FAIL).SetLogEntry(log.WithFields(log.Fields{
