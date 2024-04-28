@@ -1,0 +1,45 @@
+
+### define 
+@baseurl=http://localhost:8080/api 
+@userid=6629941c37599f2566aad0dd
+
+@useridfake = 6629941c37599f2566aad0ee
+### Pinging the server 
+
+GET {{baseurl}}/ping
+
+
+### posting new user details
+
+POST {{baseurl}}/users?action=create
+Content-Type: application/json
+
+{
+    "name": "Niranjan Awati",
+    "email": "kneerunjun@gmail.com",
+    "telegid": 645654677,
+    "auth": "jun%41993"
+}
+
+### authenticating a user
+
+POST {{baseurl}}/users?action=auth
+Content-Type: application/json
+
+{
+    "email": "kneerunjun@gmail.com",
+    "auth": "jun%41993"
+}
+
+### authorization user 
+GET {{baseurl}}/users?action=auth
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTQwMDE3NDYsImlzcyI6InBhdGlvLXdlYiBzZXJ2ZXIiLCJzdWIiOiJVc2VyIGF1dGhvcml6YXRpb24gcmVxdWVzdCIsInVzZXIiOiJrbmVlcnVuanVuQGdtYWlsLmNvbSIsInVzZXItcm9sZSI6Mn0.ZqRIr0QK5yT37UldsSejO7DYgOnqRVG9MSb9csRk0Bk
+
+
+### getting simple user details 
+
+GET {{baseurl}}/users/{{userid}}
+
+### getting a user details that does not exists  
+
+GET {{baseurl}}/users/{{useridfake}}
