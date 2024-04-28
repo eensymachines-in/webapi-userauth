@@ -76,6 +76,8 @@ func main() {
 	users := api.Use(utilities.MongoConnect(environ.MongoSrvr, environ.MongoUsr, environ.MongoPass, "users"))
 	users.POST("/users", HndlLstUsers)
 	users.GET("/users", HndlLstUsers)
+	/* Single user operations  */
 	users.GET("/users/:id", HndlAUser)
+	users.DELETE("/users/:id", HndlAUser)
 	log.Fatal(r.Run(":8080"))
 }

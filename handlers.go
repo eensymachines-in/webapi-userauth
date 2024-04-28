@@ -37,13 +37,20 @@ func HndlAUser(c *gin.Context) {
 	}
 	if err := uc.FindUser(usrId, &usr); err != nil {
 		httperr.HttpErrOrOkDispatch(c, err, log.WithFields(log.Fields{
-			"stack": "HndlAUser",
+			"stack": "HndlAUser/GET",
 		}))
 		return
 	}
 	if c.Request.Method == "GET" {
 		// trying to get the single user i
 		c.AbortWithStatusJSON(http.StatusOK, usr)
+	} else if c.Request.Method == "DELETE" {
+		if err := uc.DeleteUser(usr.Id.Hex()); err != nil {
+			httperr.HttpErrOrOkDispatch(c, err, log.WithFields(log.Fields{
+				"stack": "HndlAUser/DELETE",
+			}))
+			return
+		}
 	}
 }
 

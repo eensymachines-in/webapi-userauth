@@ -1,7 +1,7 @@
 
 ### define 
 @baseurl=http://localhost:8080/api 
-@userid=6629941c37599f2566aad0dd
+@userid=662e48f083c60e4a73acdd26
 
 @useridfake = 6629941c37599f2566aad0ee
 ### Pinging the server 
@@ -40,6 +40,14 @@ Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTQwMDE3NDYsImlz
 
 GET {{baseurl}}/users/{{userid}}
 
+### deleting a simple user  
+
+DELETE  {{baseurl}}/users/{{userid}}
+
 ### getting a user details that does not exists  
 
 GET {{baseurl}}/users/{{useridfake}}
+
+### trying to delete a user that does not exists
+
+DELETE {{baseurl}}/users/{{useridfake}}
