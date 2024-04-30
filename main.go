@@ -73,11 +73,12 @@ func main() {
 	/* Login authentication for user, sends back a jwt token  */
 	// ?action=login
 	// ?action=create
-	users := api.Use(utilities.MongoConnect(environ.MongoSrvr, environ.MongoUsr, environ.MongoPass, "users"))
+	users := api.Use(utilities.MongoConnect(environ.MongoSrvr, environ.MongoUsr, environ.MongoPass, "aquaponics"))
 	users.POST("/users", HndlLstUsers)
 	users.GET("/users", HndlLstUsers)
 	/* Single user operations  */
 	users.GET("/users/:id", HndlAUser)
 	users.DELETE("/users/:id", HndlAUser)
+	users.PATCH("/users/:id", HndlAUser)
 	log.Fatal(r.Run(":8080"))
 }

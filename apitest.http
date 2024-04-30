@@ -1,7 +1,7 @@
 
 ### define 
 @baseurl=http://localhost:8080/api 
-@userid=662e48f083c60e4a73acdd26
+@userid=662f968131842af60afd8995
 
 @useridfake = 6629941c37599f2566aad0ee
 ### Pinging the server 

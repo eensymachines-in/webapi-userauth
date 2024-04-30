@@ -51,6 +51,15 @@ func HndlAUser(c *gin.Context) {
 			}))
 			return
 		}
+	} else if c.Request.Method == "PATCH" {
+		/* Incase the default /empty value fo the user, they would NOT be patched,
+		validation thoughb happens for non-zero values */
+		if err := uc.EditUser(string(usr.Email), string(usr.Name), usr.Auth, usr.TelegID); err != nil {
+			httperr.HttpErrOrOkDispatch(c, err, log.WithFields(log.Fields{
+				"stack": "HndlAUser/PATCH",
+			}))
+			return
+		}
 	}
 }
 
