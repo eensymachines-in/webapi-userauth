@@ -40,7 +40,7 @@ type TestCase struct {
 	Want httperr.HttpErr
 }
 
-func testConnectDatabase() (*models.UsersCollection, func(), error) {
+func testConnectDatabase() (*models.UsersCollection, error) {
 	listEnviron := os.Environ()
 	var server, usr, pass string
 	for _, env := range listEnviron {
@@ -57,11 +57,7 @@ func testConnectDatabase() (*models.UsersCollection, func(), error) {
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(fmt.Sprintf("mongodb://%s:%s@%s", usr, pass, server)))
 	if err != nil {
-		return nil, nil, err
-	}
-	flush := func() {
-		client.Database("testaquaponics").Collection("users").DeleteMany(ctx, bson.M{})
-		client.Disconnect(ctx)
+		return nil, err
 	}
 	/* here we get references to the databases and the collection onto which we do all the operattions  */
 	db := client.Database(TESTDB_NAME)
@@ -73,30 +69,62 @@ func testConnectDatabase() (*models.UsersCollection, func(), error) {
 	f, err := os.Open("./dummy.json")
 	if err != nil {
 		logrus.Error("failed to open dummy data file")
-		return &uc, flush, nil
+		return &uc, nil
 	}
 	byt, err := io.ReadAll(f)
 	if err != nil {
 		logrus.Error("failed to read dummy data file")
-		return &uc, flush, nil
+		return &uc, nil
 	}
 	dummyUsers := []models.User{}
 	if err := json.Unmarshal(byt, &dummyUsers); err != nil {
 		logrus.Error("failed unmrshall dummy data ")
-		return &uc, flush, nil
+		return &uc, nil
 	}
 	for _, u := range dummyUsers {
+		u.Auth, err = models.UserPassword(u.Auth).StringHash()
+		if err != nil {
+			logrus.Error("failed to hash password")
+			continue
+		}
 		_, err := coll.InsertOne(context.Background(), u)
 		if err != nil {
 			logrus.Error("failed to insert data.")
 			continue
 		}
 	}
-	return &uc, flush, nil // using the test database
+	return &uc, nil // using the test database
+}
+
+func TestAuthUser(t *testing.T) {
+	uc, err := testConnectDatabase()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	testCases := []TestCase{
+		// only name later
+		{Name: "Authenticate-user", Args: &TestCaseArgs{Uemail: "bsmewings1@storify.com", Upass: "oikTAF118*2No3K"}, Want: nil},
+		{Name: "Authenticate-user", Args: &TestCaseArgs{Uemail: "pmosconi2@tiny.cc", Upass: "bnpOYT803XhLvBaZW"}, Want: nil},
+	}
+	for _, tt := range testCases {
+		t.Run(tt.Name, func(t *testing.T) {
+			temp := &models.User{Email: tt.Args.Uemail, Auth: tt.Args.Upass}
+			got := uc.Authenticate(temp)
+			assert.Nil(t, got, "Unexpected error when authenticating user")
+			t.Log(got)
+			t.Log(temp.Auth) // spits out the authentication token
+		})
+	}
+	t.Cleanup(func() {
+		ctx := context.Background()
+		uc.DbColl.DeleteMany(ctx, bson.M{})
+		uc.DbColl.Database().Client().Disconnect(ctx)
+	})
 }
 
 func TestUserEdit(t *testing.T) {
-	uc, closeConn, err := testConnectDatabase()
+	uc, err := testConnectDatabase()
 	if err != nil {
 		t.Error(err)
 		return
@@ -106,6 +134,7 @@ func TestUserEdit(t *testing.T) {
 		{Name: "Alter-Name", Args: &TestCaseArgs{Uname: "Felipe Janny", Uemail: "struce0@bloomberg.com"}, Want: nil},
 		// now altering the password as well
 		{Name: "Alter-Pass", Args: &TestCaseArgs{Uname: "Felipe Janny", Uemail: "struce0@bloomberg.com", Upass: "lrpKGV515"}, Want: nil},
+		{Name: "Alter-Pass", Args: &TestCaseArgs{Uname: "Felipe Janny", Uemail: "struce0@bloomberg.com", Upass: "lrpKGV515", Uteleg: 7657657566}, Want: nil},
 	}
 	for _, tt := range testCases {
 		t.Run(tt.Name, func(t *testing.T) {
@@ -113,14 +142,30 @@ func TestUserEdit(t *testing.T) {
 			assert.Equal(t, got, tt.Want, "unexpected error response when altering user details")
 		})
 	}
+	/* here we perform some bad test cases*/
+	badTestCases := []TestCase{
+		// User that wasnt found registered cannot be altered
+		{Name: "Alter-NotFound", Args: &TestCaseArgs{Uname: "Felipe Janny", Uemail: "struce0@gandberg.com"}, Want: nil},
+		{Name: "Alter-BadUName", Args: &TestCaseArgs{Uname: "??^%^$^Mr", Uemail: "struce0@bloomberg.com"}, Want: nil},
+		// case of a bad password
+		{Name: "Alter-BadUName", Args: &TestCaseArgs{Uname: "Felipe Janny", Uemail: "struce0@bloomberg.com", Upass: "54655"}, Want: nil},
+	}
+	for _, tt := range badTestCases {
+		t.Run(tt.Name, func(t *testing.T) {
+			got := uc.EditUser(string(tt.Args.Uemail), string(tt.Args.Uname), tt.Args.Upass, tt.Args.Uteleg)
+			assert.NotNil(t, got, "Unexpected nil error when in bad test case")
+		})
+	}
 	t.Cleanup(func() {
-		closeConn()
+		ctx := context.Background()
+		uc.DbColl.DeleteMany(ctx, bson.M{})
+		uc.DbColl.Database().Client().Disconnect(ctx)
 	})
 }
 
 // TestUserCRUD : will test the complete crud operation fo the users
 func TestUserInsert(t *testing.T) {
-	uc, closeConn, err := testConnectDatabase()
+	uc, err := testConnectDatabase()
 	if err != nil {
 		t.Error(err)
 		return
@@ -155,7 +200,9 @@ func TestUserInsert(t *testing.T) {
 	}
 
 	t.Cleanup(func() {
-		closeConn()
+		ctx := context.Background()
+		uc.DbColl.DeleteMany(ctx, bson.M{})
+		uc.DbColl.Database().Client().Disconnect(ctx)
 	})
 }
 

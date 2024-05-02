@@ -36,7 +36,7 @@ func (up UserPassword) StringHash() (string, error) {
 type UserName string
 
 func (un UserName) IsValid() bool {
-	passRegex := regexp.MustCompile(`^[a-zA-Z\s]+$`) 
+	passRegex := regexp.MustCompile(`^[a-zA-Z\s]+$`)
 	return passRegex.MatchString(string(un))
 }
 
